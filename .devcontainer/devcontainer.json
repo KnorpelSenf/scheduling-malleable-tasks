@@ -1,0 +1,15 @@
+{
+	"name": "Rust",
+	"image": "mcr.microsoft.com/devcontainers/rust:1-1-bookworm",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"rust-lang.rust-analyzer",
+				"ms-vscode-remote.remote-containers",
+				"tamasfe.even-better-toml",
+				"mechatroner.rainbow-csv",
+				"wayou.vscode-todo-highlight"
+			]
+		}
+	}
+}
