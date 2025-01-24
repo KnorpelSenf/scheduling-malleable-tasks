@@ -77,7 +77,7 @@ fn main() {
             let instance = parse_input(job_file, constraint_file);
 
             let schedule = algo::schedule(instance);
-            render_schedule(&schedule);
+            println!("{}", render_schedule(&schedule));
         }
         Some(Commands::Generate {
             jobs,
