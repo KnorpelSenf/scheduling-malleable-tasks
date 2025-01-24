@@ -64,6 +64,33 @@ enum Commands {
 }
 
 fn main() {
+    // println!(
+    //     "{}",
+    //     render_schedule(&Schedule {
+    //         processor_count: 3,
+    //         jobs: vec![
+    //             (10, vec![5, 3, 2], 2, 0),
+    //             (11, vec![6, 4, 3], 3, 6),
+    //             (12, vec![3, 1, 1], 1, 3),
+    //             (13, vec![7, 2, 1], 1, 1)
+    //         ]
+    //         .into_iter()
+    //         .enumerate()
+    //         .map(|(index, (id, processing_times, allotment, start_time))| {
+    //             ScheduledJob {
+    //                 job: Job {
+    //                     id,
+    //                     index,
+    //                     processing_times,
+    //                 },
+    //                 allotment: allotment,
+    //                 start_time,
+    //             }
+    //         })
+    //         .collect()
+    //     })
+    // );
+
     let cli = Cli::parse();
 
     match &cli.command {

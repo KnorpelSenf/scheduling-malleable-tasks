@@ -20,7 +20,7 @@ pub struct Job {
     pub processing_times: Vec<i32>,
 }
 impl Job {
-    fn processing_time(&self, allotment: usize) -> i32 {
+    pub fn processing_time(&self, allotment: usize) -> i32 {
         self.processing_times[allotment - 1]
     }
 }
