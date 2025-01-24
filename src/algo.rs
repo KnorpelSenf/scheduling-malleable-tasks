@@ -1,20 +1,22 @@
 /// A problem instance
 pub struct Instance {
-    processor_count: usize,
+    pub processor_count: usize,
     /// A list of jobs
-    jobs: Vec<Job>,
+    pub jobs: Vec<Job>,
     /// A partial ordering on the jobs
-    constraints: Vec<Constraint>,
+    pub constraints: Vec<Constraint>,
 }
 /// A job in a problem instance
 #[derive(Clone, Debug, Default)]
 pub struct Job {
+    /// External identifier of the job
+    pub id: i32,
     /// Index of the job
-    index: usize,
+    pub index: usize,
     /// Processing times of the job based on how many machines is has available.
     /// Element 0 is skipped, so the vector starts with the processing time
     /// needed if the job is scheduled on one machine.
-    processing_times: Vec<i32>,
+    pub processing_times: Vec<i32>,
 }
 impl Job {
     fn processing_time(&self, allotment: usize) -> i32 {
@@ -114,7 +116,7 @@ impl Iterator for FrontTasks<'_> {
     }
 }
 
-fn schedule(instance: Instance) -> Schedule {
+pub fn schedule(instance: Instance) -> Schedule {
     let jobs = vec![Job::default(); 3];
     let state = vec![State::default(); 10];
     let start = state[5];
