@@ -43,8 +43,8 @@ fn main() {
 fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
     let mut rdr = ReaderBuilder::new()
         .from_path(job_file_path)
-        .expect("could not read CSV");
-    let headers = rdr.headers().expect("no headers");
+        .expect("could not read job CSV");
+    let headers = rdr.headers().expect("no headers in job file");
     let header_count = headers.len();
     if header_count <= 1 {
         panic!("too few columns!");
@@ -63,7 +63,7 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
                     .get(0)
                     .unwrap_or_else(|| panic!("missing id in row {index}"))
                     .parse()
-                    .unwrap_or_else(|e| panic!("bad id in row {index}")),
+                    .unwrap_or_else(|e| panic!("bad id in row {index}: {:#?}", e)),
                 index,
                 processing_times: record
                     .iter()
@@ -71,13 +71,24 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
                     .skip(1)
                     .map(|(column, cell)| {
                         cell.parse().unwrap_or_else(|e| {
-                            panic!("bad processing time in cell at {index}:{column}")
+                            panic!("bad processing time in cell at {index}:{column}: {:#?}", e)
                         })
                     })
                     .collect(),
             }
         })
         .collect();
+    let mut rdr = ReaderBuilder::new()
+        .from_path(constraint_file_path)
+        .expect("cound not read constraints CSV");
+    assert_eq!(
+        rdr.headers()
+            .expect("no headers in constraint file")
+            .iter()
+            .collect::<Vec<&str>>(),
+        vec!["id0", "id1"]
+    );
+
     Instance {
         processor_count,
         jobs,
