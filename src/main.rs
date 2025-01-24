@@ -1,8 +1,11 @@
-use algo::{Constraint, Instance, Job, Schedule};
+use algo::{Constraint, Instance, Job, Schedule, ScheduledJob};
+use render::render_schedule;
+
 use clap::{Parser, Subcommand};
 use csv::ReaderBuilder;
 
 mod algo;
+mod render;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -74,7 +77,7 @@ fn main() {
             let instance = parse_input(job_file, constraint_file);
 
             let schedule = algo::schedule(instance);
-            print_schedule(&schedule);
+            render_schedule(&schedule);
         }
         Some(Commands::Generate {
             jobs,
@@ -83,7 +86,7 @@ fn main() {
             output,
         }) => {
             //let instance = algo::generate(*jobs, *processors, *max_time);
-            println!("Not implemented yet");
+            todo!("Not implemented yet");
         }
         None => {
             println!("Please use the 'solve' or 'generate' subcommands");
@@ -170,5 +173,3 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
         constraints,
     }
 }
-
-fn print_schedule(_schedule: &Schedule) {}

@@ -1,5 +1,6 @@
 /// A problem instance
 pub struct Instance {
+    /// The number of processors available
     pub processor_count: usize,
     /// A list of jobs
     pub jobs: Vec<Job>,
@@ -62,19 +63,20 @@ impl PartialRelation for Job {
 /// A feasible job schedule
 #[derive(Debug, Default)]
 pub struct Schedule {
+    /// The number of processors available
+    pub processor_count: usize,
     /// A list of scheduled jobs
-    jobs: Vec<ScheduledJob>,
-    // TODO: one vec per machine
+    pub jobs: Vec<ScheduledJob>,
 }
 /// A job that was scheduled in a feasible schedule
 #[derive(Debug, Default)]
 pub struct ScheduledJob {
     /// The input job
-    job: Job,
+    pub job: Job,
     /// The job allotment
-    allotment: usize,
+    pub allotment: usize,
     /// The integral starting time of the job
-    start_time: i32,
+    pub start_time: i32,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -85,5 +87,8 @@ struct State {
 }
 
 pub fn schedule(instance: Instance) -> Schedule {
-    Schedule { jobs: vec![] }
+    Schedule {
+        processor_count: instance.processor_count,
+        jobs: vec![],
+    }
 }
