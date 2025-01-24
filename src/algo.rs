@@ -24,7 +24,7 @@ impl Job {
     }
 }
 /// Compares two values by their index
-pub struct Constraint(usize, usize);
+pub struct Constraint(pub usize, pub usize);
 /// Implements a partial relation based on a list of constraints
 trait PartialRelation {
     /// Returns `true` if self is comparable to other, and `false` of the two

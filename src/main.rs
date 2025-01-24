@@ -1,4 +1,4 @@
-use algo::{Instance, Job, Schedule};
+use algo::{Constraint, Instance, Job, Schedule};
 use clap::Parser;
 use csv::ReaderBuilder;
 
@@ -53,9 +53,8 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
         panic!("first column is not id");
     }
     let processor_count = header_count - 1;
-    let jobs = rdr
-        .records()
-        .enumerate()
+    let jobs = (1..)
+        .zip(rdr.records())
         .map(|(index, record)| {
             let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
             Job {
@@ -88,11 +87,40 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
             .collect::<Vec<&str>>(),
         vec!["id0", "id1"]
     );
+    let constraints = (1..)
+        .zip(rdr.records())
+        .map(|(index, record)| {
+            let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
+            Constraint(
+                record
+                    .get(0)
+                    .unwrap_or_else(|| {
+                        panic!("missing left side of constraint in row {index}: {:#?}", e)
+                    })
+                    .parse()
+                    .unwrap_or_else(|e| {
+                        panic!("bad id in left side of constraint in row {index}: {:#?}", e)
+                    }),
+                record
+                    .get(1)
+                    .unwrap_or_else(|| {
+                        panic!("missing right side of constraint in row {index}: {:#?}", e)
+                    })
+                    .parse()
+                    .unwrap_or_else(|e| {
+                        panic!(
+                            "bad id in right side of constraint in row {index}: {:#?}",
+                            e
+                        )
+                    }),
+            )
+        })
+        .collect();
 
     Instance {
         processor_count,
         jobs,
-        constraints: vec![], // TODO: parse file
+        constraints,
     }
 }
 
