@@ -1,43 +1,94 @@
 use algo::{Constraint, Instance, Job, Schedule};
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use csv::ReaderBuilder;
 
 mod algo;
 
-#[derive(Parser, Debug)]
+#[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-struct Args {
-    /// Solution accuracy
-    #[arg(short, long)]
-    epsilon: f64,
+#[command(propagate_version = true)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
 
-    /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
-    /// column p_i contains the processing time if the job were to be executed
-    /// on i machines.
-    #[arg(short, long)]
-    job_file: String,
+#[derive(Subcommand)]
+enum Commands {
+    /// Solves a given instance of the scheduling problem
+    Solve {
+        /// Solution accuracy
+        #[arg(short, long)]
+        epsilon: f64,
 
-    /// Input CSV file containing constraints between jobs in the format
-    /// "id0,id1" where each line expresses that the job with id0 is less than
-    /// the job with id1.
-    #[arg(short, long)]
-    constraint_file: String,
+        /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
+        /// column p_i contains the processing time if the job were to be executed
+        /// on i machines.
+        #[arg(short, long)]
+        job_file: String,
 
-    /// Render the schedule to an SVG file in the directory "schedules"
-    #[arg(long)]
-    svg: bool,
+        /// Input CSV file containing constraints between jobs in the format
+        /// "id0,id1" where each line expresses that the job with id0 is less than
+        /// the job with id1.
+        #[arg(short, long)]
+        constraint_file: String,
 
-    /// Open the rendered SVG if created
-    #[arg(long)]
-    open: bool,
+        /// Render the schedule to an SVG file in the directory "schedules"
+        #[arg(long)]
+        svg: bool,
+
+        /// Open the rendered SVG if created
+        #[arg(long)]
+        open: bool,
+    },
+    /// Generates a random instance of the scheduling problem
+    Generate {
+        /// Number of jobs to generate
+        #[arg(short, long)]
+        jobs: usize,
+
+        /// Number of processors to generate
+        #[arg(short, long)]
+        processors: usize,
+
+        /// Maximum processing time for each job
+        #[arg(short, long)]
+        max_time: usize,
+
+        /// Output CSV file to write the generated instance to
+        #[arg(short, long)]
+        output: String,
+    },
 }
 
 fn main() {
-    let args = Args::parse();
-    let instance = parse_input(&args.job_file, &args.constraint_file);
+    let cli = Cli::parse();
 
-    let schedule = algo::schedule(instance);
-    print_schedule(&schedule);
+    match &cli.command {
+        Some(Commands::Solve {
+            job_file,
+            constraint_file,
+            epsilon,
+            svg,
+            open,
+        }) => {
+            let instance = parse_input(job_file, constraint_file);
+
+            let schedule = algo::schedule(instance);
+            print_schedule(&schedule);
+        }
+        Some(Commands::Generate {
+            jobs,
+            processors,
+            max_time,
+            output,
+        }) => {
+            //let instance = algo::generate(*jobs, *processors, *max_time);
+            println!("Not implemented yet");
+        }
+        None => {
+            println!("Please use the 'solve' or 'generate' subcommands");
+        }
+    }
 }
 
 fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
