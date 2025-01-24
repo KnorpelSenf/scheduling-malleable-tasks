@@ -23,6 +23,8 @@ impl Job {
         self.processing_times[allotment - 1]
     }
 }
+/// Compares two values by their index
+pub struct Constraint(usize, usize);
 /// Implements a partial relation based on a list of constraints
 trait PartialRelation {
     /// Returns `true` if self is comparable to other, and `false` of the two
@@ -56,14 +58,13 @@ impl PartialRelation for Job {
         })
     }
 }
-/// Compares two values by their index
-pub struct Constraint(usize, usize);
 
 /// A feasible job schedule
 #[derive(Debug, Default)]
 pub struct Schedule {
     /// A list of scheduled jobs
     jobs: Vec<ScheduledJob>,
+    // TODO: one vec per machine
 }
 /// A job that was scheduled in a feasible schedule
 #[derive(Debug, Default)]
@@ -76,53 +77,13 @@ pub struct ScheduledJob {
     start_time: i32,
 }
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Clone, Debug, Default)]
 struct State {
-    /// The index at which the job of this state is found
-    job_index: usize,
-    /// The allotment of the job
-    allotment: usize,
-    /// The completion time of the job
-    completion: i32,
-    /// The index of the previous state, or 0 if this is the first state
-    link: usize,
-}
-impl State {
-    fn start_time(&self, jobs: &Vec<Job>) -> i32 {
-        self.completion - jobs[self.job_index].processing_time(self.allotment)
-    }
-    fn front_tasks<'a>(&self, state: &'a Vec<State>) -> FrontTasks<'a> {
-        FrontTasks {
-            state,
-            current: *self,
-        }
-    }
-}
-struct FrontTasks<'a> {
-    state: &'a Vec<State>,
-    current: State,
-}
-impl Iterator for FrontTasks<'_> {
-    type Item = State;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let curr = self.current;
-        if curr.link == 0 {
-            None
-        } else {
-            self.current = self.state[curr.link];
-            Some(curr)
-        }
-    }
+    ideal: Vec<Job>,
+    allotment: Vec<usize>,
+    completion_times: Vec<i32>,
 }
 
 pub fn schedule(instance: Instance) -> Schedule {
-    let jobs = vec![Job::default(); 3];
-    let state = vec![State::default(); 10];
-    let start = state[5];
-    let list = start
-        .front_tasks(&state)
-        .map(|state| state.start_time(&jobs))
-        .collect::<Vec<_>>();
     Schedule { jobs: vec![] }
 }
