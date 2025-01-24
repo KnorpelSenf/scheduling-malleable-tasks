@@ -145,18 +145,14 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
             Constraint(
                 record
                     .get(0)
-                    .unwrap_or_else(|| {
-                        panic!("missing left side of constraint in row {index}: {:#?}", e)
-                    })
+                    .unwrap_or_else(|| panic!("missing left side of constraint in row {index}"))
                     .parse()
                     .unwrap_or_else(|e| {
                         panic!("bad id in left side of constraint in row {index}: {:#?}", e)
                     }),
                 record
                     .get(1)
-                    .unwrap_or_else(|| {
-                        panic!("missing right side of constraint in row {index}: {:#?}", e)
-                    })
+                    .unwrap_or_else(|| panic!("missing right side of constraint in row {index}"))
                     .parse()
                     .unwrap_or_else(|e| {
                         panic!(
