@@ -76,7 +76,7 @@ pub fn render_schedule(schedule: Schedule) -> String {
         .iter()
         .map(|job| job.start_time + job.processing_time())
         .max()
-        .unwrap_or_default() as usize;
+        .unwrap_or(0) as usize;
     let body = add_jobs_to_doc(document, schedule.processor_count, schedule.jobs)
         .add(create_time_scale(height))
         .set(

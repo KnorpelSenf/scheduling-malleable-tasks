@@ -174,7 +174,7 @@ fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
     if header_count <= 1 {
         panic!("too few columns!");
     }
-    if headers.iter().next().unwrap_or_default() != "id" {
+    if headers.iter().next().is_none_or(|name| name != "id") {
         panic!("first column is not id");
     }
     let processor_count = header_count - 1;
