@@ -52,7 +52,7 @@ enum Commands {
     Generate {
         /// Number of jobs to generate
         #[arg(short, long)]
-        n: i32,
+        n: usize,
 
         /// Maximum processing time for each job
         #[arg(long)]
