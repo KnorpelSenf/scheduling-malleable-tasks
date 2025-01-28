@@ -86,16 +86,53 @@ impl ScheduledJob {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 struct State {
-    ideal: Vec<Job>,
+    ideal: Vec<Option<Job>>,
     allotment: Vec<usize>,
     completion_times: Vec<i32>,
 }
+impl State {
+    fn empty(omega: usize) -> Self {
+        State {
+            ideal: vec![None; omega],
+            allotment: vec![0; omega],
+            completion_times: vec![0; omega],
+        }
+    }
+    fn start_times(&self, i: usize) -> i32 {
+        self.ideal[i]
+            .as_ref()
+            .map(|ideal| self.completion_times[i] - ideal.processing_time(self.allotment[i]))
+            .unwrap_or(0)
+    }
+    // fn try_add_job(&self, i: usize, job: Job) -> Option<Self> { None }
+    // fn can_add(&self, i: usize, job: Job) -> bool { false }
+    // fn add_job(&self, i: usize, job: Job) -> Self {
+    //     let mut ideal = self.ideal.clone();
+    //     let allotment = self.allotment.clone();
+    //     let completion_times = self.completion_times.clone();
+    //     ideal[i] = Some(job);
+    //     State {
+    //         ideal,
+    //         allotment,
+    //         completion_times,
+    //     }
+    // }
+}
 
 pub fn schedule(instance: Instance) -> Schedule {
+    let chains = preprocess(&instance);
+    let omega = chains.len();
+    let initial_state = State::empty(omega);
+
     Schedule {
         processor_count: instance.processor_count,
         jobs: vec![],
     }
+}
+
+fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
+    // TODO: split into chains
+    vec![Vec::from_iter(0..instance.jobs.len())] // dummy chain with all jobs
 }
