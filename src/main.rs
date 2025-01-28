@@ -5,6 +5,7 @@ use clap::{Parser, Subcommand};
 use csv::ReaderBuilder;
 
 mod algo;
+mod generate;
 mod render;
 
 #[derive(Parser)]
@@ -12,7 +13,7 @@ mod render;
 #[command(propagate_version = true)]
 struct Cli {
     #[command(subcommand)]
-    command: Option<Commands>,
+    command: Commands,
 }
 
 #[derive(Subcommand)]
@@ -22,6 +23,10 @@ enum Commands {
         /// Solution accuracy
         #[arg(short, long)]
         epsilon: f64,
+
+        /// Number of processors
+        #[arg(short, long)]
+        m: usize,
 
         /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
         /// column p_i contains the processing time if the job were to be executed
@@ -47,19 +52,35 @@ enum Commands {
     Generate {
         /// Number of jobs to generate
         #[arg(short, long)]
-        jobs: usize,
+        n: i32,
 
-        /// Number of processors to generate
+        /// Output CSV file containing the jobs
         #[arg(short, long)]
-        processors: usize,
+        job_file: String,
 
         /// Maximum processing time for each job
         #[arg(short, long)]
-        max_time: usize,
+        min_p: usize,
 
-        /// Output CSV file to write the generated instance to
+        /// Maximum processing time for each job
         #[arg(short, long)]
-        output: String,
+        max_p: usize,
+
+        /// Constraint width
+        #[arg(short, long)]
+        omega: usize,
+
+        /// Minimum chain length
+        #[arg(short, long)]
+        min_chain: usize,
+
+        /// Maximum chain length
+        #[arg(short, long)]
+        max_chain: usize,
+
+        /// Output CSV file containing constraints between jobs
+        #[arg(short, long)]
+        constraint_file: String,
     },
 }
 
@@ -94,29 +115,31 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Some(Commands::Solve {
+        Commands::Solve {
             job_file,
             constraint_file,
             epsilon,
+            m,
             svg,
             open,
-        }) => {
+        } => {
             let instance = parse_input(job_file, constraint_file);
 
             let schedule = algo::schedule(instance);
             println!("{}", render_schedule(&schedule));
         }
-        Some(Commands::Generate {
-            jobs,
-            processors,
-            max_time,
-            output,
-        }) => {
+        Commands::Generate {
+            n,
+            job_file,
+            min_p,
+            max_p,
+            omega,
+            min_chain,
+            max_chain,
+            constraint_file,
+        } => {
             //let instance = algo::generate(*jobs, *processors, *max_time);
             todo!("Not implemented yet");
-        }
-        None => {
-            println!("Please use the 'solve' or 'generate' subcommands");
         }
     }
 }
