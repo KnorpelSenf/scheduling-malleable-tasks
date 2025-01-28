@@ -18,7 +18,7 @@ const MACHINE_WIDTH: usize = 150; // px
 const MACHINE_HEIGHT_SCALE: usize = 15; // px for each unit of processing time
 const MACHINE_SPACING: usize = 10; // px
 
-pub fn render_schedule(schedule: &Schedule) -> String {
+pub fn render_schedule(schedule: Schedule) -> String {
     // Create the linear gradient for the background
     let gradient = LinearGradient::new()
         .set("id", "background")
@@ -71,9 +71,13 @@ pub fn render_schedule(schedule: &Schedule) -> String {
         );
 
     // Create the SVG document
-    let (document, height) = add_jobs_to_doc(document, &schedule.jobs);
-
-    let body = document
+    let height = schedule
+        .jobs
+        .iter()
+        .map(|job| job.start_time + job.processing_time())
+        .max()
+        .unwrap_or_default() as usize;
+    let body = add_jobs_to_doc(document, schedule.processor_count, schedule.jobs)
         .add(create_time_scale(height))
         .set(
             "width",
@@ -81,7 +85,10 @@ pub fn render_schedule(schedule: &Schedule) -> String {
                 - MACHINE_SPACING
                 + RIGHT_MARGIN,
         )
-        .set("height", height + BOTTOM_MARGIN)
+        .set(
+            "height",
+            TOP_MARGIN + height * MACHINE_HEIGHT_SCALE + BOTTOM_MARGIN,
+        )
         .to_string();
 
     format!(
@@ -90,46 +97,71 @@ pub fn render_schedule(schedule: &Schedule) -> String {
     )
 }
 
-fn add_jobs_to_doc(document: SVG, jobs: &Vec<ScheduledJob>) -> (SVG, usize) {
-    jobs.iter().enumerate().fold(
-        (document, TOP_MARGIN),
-        |(doc, max_height), (machine, job)| {
-            let x = LEFT_MARGIN + machine * (MACHINE_WIDTH + MACHINE_SPACING);
-            let y = TOP_MARGIN + job.start_time as usize;
-            let (svg, height) = add_job_to_doc(doc, x, y, job);
-            (svg, max(height, max_height))
-        },
-    )
+fn add_jobs_to_doc(document: SVG, processor_count: usize, mut jobs: Vec<ScheduledJob>) -> SVG {
+    jobs.sort_by_key(|job| job.start_time);
+    jobs.into_iter()
+        .fold(
+            (document, vec![0; processor_count]),
+            |(doc, mut used_until), job| {
+                let y = TOP_MARGIN + job.start_time as usize * MACHINE_HEIGHT_SCALE;
+                let processors: Vec<usize> = used_until
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, used)| **used <= job.start_time)
+                    .take(job.allotment)
+                    .map(|(proc, _)| proc)
+                    .collect();
+                assert_eq!(
+                    processors.len(),
+                    job.allotment,
+                    "insufficient number of processors available"
+                );
+                let end = job.start_time + job.processing_time();
+                for proc in processors.iter() {
+                    used_until[*proc] = end;
+                }
+                (add_job_to_doc(doc, processors, y, job), used_until)
+            },
+        )
+        .0
 }
 
-fn add_job_to_doc(document: SVG, x: usize, y: usize, job: &ScheduledJob) -> (SVG, usize) {
-    let processing_time = job.job.processing_time(job.allotment) as usize;
+fn add_job_to_doc(document: SVG, processors: Vec<usize>, y: usize, job: ScheduledJob) -> SVG {
+    assert_eq!(
+        processors.len(),
+        job.allotment,
+        "mismatched number of processors for allotment"
+    );
+    let processing_time = job.processing_time() as usize;
     let w = MACHINE_WIDTH;
     let h = MACHINE_HEIGHT_SCALE * processing_time;
-    let machine_box = Rectangle::new()
-        .set("x", x)
-        .set("y", y)
-        .set("width", w)
-        .set("height", h)
-        .set("fill", "#0000f8")
-        .set("class", "machine-box");
+    processors.into_iter().fold(document, |doc, processor| {
+        let x = LEFT_MARGIN + processor * (MACHINE_WIDTH + MACHINE_SPACING);
+        let machine_box = Rectangle::new()
+            .set("x", x)
+            .set("y", y)
+            .set("width", w)
+            .set("height", h)
+            .set("fill", "#0000f8")
+            .set("class", "machine-box");
 
-    let machine_label = Text::new(job.job.id.to_string())
-        .set("x", x + w / 2)
-        .set("y", y + h / 2) // Centered on the rectangle
-        .set("class", "machine-label");
+        let machine_label = Text::new(job.job.id.to_string())
+            .set("x", x + w / 2) // Centered on the rectangle
+            .set("y", y + h / 2)
+            .set("class", "machine-label");
 
-    let tooltip = Title::new(format!(
-        "Job {}\n\nprocessing time: {} s",
-        job.job.id, processing_time
-    ));
+        let tooltip = Title::new(format!(
+            "Job {}\n\nallotment: {} processors\nprocessing time: {} s",
+            job.job.id, job.allotment, processing_time
+        ));
 
-    let group = Group::new()
-        .add(machine_box)
-        .add(machine_label)
-        .add(tooltip);
+        let group = Group::new()
+            .add(machine_box)
+            .add(machine_label)
+            .add(tooltip);
 
-    (document.add(group), y + h)
+        doc.add(group)
+    })
 }
 
 fn create_machine_header(i: usize) -> Text {
@@ -143,10 +175,8 @@ fn create_machine_header(i: usize) -> Text {
         .set("class", "machine-header")
 }
 
-fn create_time_scale(height: usize) -> Group {
-    let offset = height - TOP_MARGIN;
-    let last_index = offset / MACHINE_HEIGHT_SCALE;
-    (0..last_index + 1)
+fn create_time_scale(height_seconds: usize) -> Group {
+    (0..=height_seconds)
         .map(|t| {
             let scaled_t = t * MACHINE_HEIGHT_SCALE;
             let is_big = scaled_t % (5 * MACHINE_HEIGHT_SCALE) == 0;
@@ -157,7 +187,7 @@ fn create_time_scale(height: usize) -> Group {
                 width,
                 0,
             ));
-            if is_big || t == last_index {
+            if is_big || t == height_seconds {
                 line.add(
                     Text::new(t.to_string())
                         .set("x", SCALE_MARGIN - 15)
@@ -169,7 +199,12 @@ fn create_time_scale(height: usize) -> Group {
             }
         })
         .fold(
-            Group::new().add(create_line(SCALE_MARGIN, TOP_MARGIN, 0, offset)),
+            Group::new().add(create_line(
+                SCALE_MARGIN,
+                TOP_MARGIN,
+                0,
+                height_seconds * MACHINE_HEIGHT_SCALE,
+            )),
             |group, line| group.add(line),
         )
 }

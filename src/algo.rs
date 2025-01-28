@@ -20,6 +20,7 @@ pub struct Job {
     pub processing_times: Vec<i32>,
 }
 impl Job {
+    /// Computes the processing time of the job based on the given allotment
     pub fn processing_time(&self, allotment: usize) -> i32 {
         self.processing_times[allotment - 1]
     }
@@ -77,6 +78,12 @@ pub struct ScheduledJob {
     pub allotment: usize,
     /// The integral starting time of the job
     pub start_time: i32,
+}
+impl ScheduledJob {
+    /// Computes the processing time of the job based on the current allotment
+    pub fn processing_time(&self) -> i32 {
+        self.job.processing_time(self.allotment)
+    }
 }
 
 #[derive(Clone, Debug, Default)]

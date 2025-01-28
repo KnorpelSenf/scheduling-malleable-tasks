@@ -126,7 +126,7 @@ fn main() {
             let instance = parse_input(job_file, constraint_file);
 
             let schedule = algo::schedule(instance);
-            println!("{}", render_schedule(&schedule));
+            println!("{}", render_schedule(schedule));
         }
         Commands::Generate {
             n,
