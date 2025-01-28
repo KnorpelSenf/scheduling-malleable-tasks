@@ -55,12 +55,12 @@ enum Commands {
         n: i32,
 
         /// Maximum processing time for each job
-        #[arg(short, long)]
-        min_p: usize,
+        #[arg(long)]
+        min: usize,
 
         /// Maximum processing time for each job
-        #[arg(short, long)]
-        max_p: usize,
+        #[arg(long)]
+        max: usize,
 
         /// Output CSV file containing the jobs
         #[arg(short, long)]
@@ -71,11 +71,11 @@ enum Commands {
         omega: usize,
 
         /// Minimum chain length
-        #[arg(short, long)]
+        #[arg(long)]
         min_chain: usize,
 
         /// Maximum chain length
-        #[arg(short, long)]
+        #[arg(long)]
         max_chain: usize,
 
         /// Output CSV file containing constraints between jobs
@@ -130,8 +130,8 @@ fn main() {
         }
         Commands::Generate {
             n,
-            min_p,
-            max_p,
+            min: min_p,
+            max: max_p,
             job_file,
             omega,
             min_chain,
