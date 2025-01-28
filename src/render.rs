@@ -144,7 +144,9 @@ fn create_machine_header(i: usize) -> Text {
 }
 
 fn create_time_scale(height: usize) -> Group {
-    (0..height / MACHINE_HEIGHT_SCALE)
+    let offset = height - TOP_MARGIN;
+    let last_index = offset / MACHINE_HEIGHT_SCALE;
+    (0..last_index + 1)
         .map(|t| {
             let scaled_t = t * MACHINE_HEIGHT_SCALE;
             let is_big = scaled_t % (5 * MACHINE_HEIGHT_SCALE) == 0;
@@ -155,7 +157,7 @@ fn create_time_scale(height: usize) -> Group {
                 width,
                 0,
             ));
-            if is_big {
+            if is_big || t == last_index {
                 line.add(
                     Text::new(t.to_string())
                         .set("x", SCALE_MARGIN - 15)
@@ -167,12 +169,7 @@ fn create_time_scale(height: usize) -> Group {
             }
         })
         .fold(
-            Group::new().add(create_line(
-                SCALE_MARGIN,
-                TOP_MARGIN,
-                0,
-                height - TOP_MARGIN,
-            )),
+            Group::new().add(create_line(SCALE_MARGIN, TOP_MARGIN, 0, offset)),
             |group, line| group.add(line),
         )
 }
