@@ -138,36 +138,25 @@ fn main() {
             max_chain,
             constraint_file,
         } => {
-            if n < &1 {
-                panic!("n must be at least 1");
-            }
-            if min_p < &1 {
-                panic!("min_p must be at least 1");
-            }
-            if max_p < min_p {
-                panic!("max_p must be at least min_p");
-            }
-            if omega < &1 {
-                panic!("omega must be at least 1");
-            }
-            if *omega > *n as usize {
-                panic!("omega must be at most n");
-            }
-            if min_chain < &1 {
-                panic!("min_chain must be at least 1");
-            }
-            if max_chain < min_chain {
-                panic!("max_chain must be at least min_chain");
-            }
-            if *max_chain > *n as usize {
-                panic!("max_chain must be at most n");
-            }
-            if *min_chain * omega > *n as usize {
-                panic!("min_chain * omega must be at at most n");
-            }
-            if *max_chain * omega < *n as usize {
-                panic!("max_chain * omega must be at at least n");
-            }
+            assert!(n < &1, "n must be at least 1");
+            assert!(min_p < &1, "min_p must be at least 1");
+            assert!(max_p < min_p, "max_p must be at least min_p");
+            assert!(omega < &1, "omega must be at least 1");
+            assert!(*omega > *n as usize, "omega must be at most n");
+            assert!(min_chain < &1, "min_chain must be at least 1");
+            assert!(
+                max_chain < min_chain,
+                "max_chain must be at least min_chain"
+            );
+            assert!(*max_chain > *n as usize, "max_chain must be at most n");
+            assert!(
+                *min_chain * omega > *n as usize,
+                "min_chain * omega must be at at most n"
+            );
+            assert!(
+                *max_chain * omega < *n as usize,
+                "max_chain * omega must be at at least n"
+            );
 
             let jobs = generate::jobs(*n, *min_p, *max_p);
             let chains = generate::chains(*n, *omega, *min_chain, *max_chain);
