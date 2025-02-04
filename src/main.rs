@@ -138,23 +138,23 @@ fn main() {
             max_chain,
             constraint_file,
         } => {
-            assert!(n < &1, "n must be at least 1");
-            assert!(min_p < &1, "min_p must be at least 1");
-            assert!(max_p < min_p, "max_p must be at least min_p");
-            assert!(omega < &1, "omega must be at least 1");
-            assert!(*omega > *n as usize, "omega must be at most n");
-            assert!(min_chain < &1, "min_chain must be at least 1");
+            assert!(n >= &1, "n must be at least 1");
+            assert!(min_p >= &1, "min_p must be at least 1");
+            assert!(max_p >= min_p, "max_p must be at least min_p");
+            assert!(omega >= &1, "omega must be at least 1");
+            assert!(*omega <= *n as usize, "omega must be at most n");
+            assert!(min_chain >= &1, "min_chain must be at least 1");
             assert!(
-                max_chain < min_chain,
+                max_chain >= min_chain,
                 "max_chain must be at least min_chain"
             );
-            assert!(*max_chain > *n as usize, "max_chain must be at most n");
+            assert!(*max_chain <= *n as usize, "max_chain must be at most n");
             assert!(
-                *min_chain * omega > *n as usize,
+                *min_chain * omega <= *n as usize,
                 "min_chain * omega must be at at most n"
             );
             assert!(
-                *max_chain * omega < *n as usize,
+                *max_chain * omega >= *n as usize,
                 "max_chain * omega must be at at least n"
             );
 
