@@ -1,10 +1,10 @@
-use algo::{Constraint, Instance, Job, Schedule, ScheduledJob};
+use algo::{Schedule, ScheduledJob};
 use render::render_schedule;
 
 use clap::{Parser, Subcommand};
-use csv::ReaderBuilder;
 
 mod algo;
+mod files;
 mod generate;
 mod render;
 
@@ -23,10 +23,6 @@ enum Commands {
         /// Solution accuracy
         #[arg(short, long)]
         epsilon: f64,
-
-        /// Number of processors
-        #[arg(short, long)]
-        m: usize,
 
         /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
         /// column p_i contains the processing time if the job were to be executed
@@ -53,6 +49,10 @@ enum Commands {
         /// Number of jobs to generate
         #[arg(short, long)]
         n: usize,
+
+        /// Number of processors
+        #[arg(short, long)]
+        m: usize,
 
         /// Maximum processing time for each job
         #[arg(long)]
@@ -119,17 +119,17 @@ fn main() {
             job_file,
             constraint_file,
             epsilon,
-            m,
             svg,
             open,
         } => {
-            let instance = parse_input(job_file, constraint_file);
+            let instance = files::read(job_file, constraint_file);
 
             let schedule = algo::schedule(instance);
             println!("{}", render_schedule(schedule));
         }
         Commands::Generate {
             n,
+            m,
             min: min_p,
             max: max_p,
             job_file,
@@ -158,89 +158,8 @@ fn main() {
                 "max_chain * omega must be at at least n"
             );
 
-            let jobs = generate::jobs(*n, *min_p, *max_p);
-            let chains = generate::chains(*n, *omega, *min_chain, *max_chain);
-            todo!("Not implemented yet");
+            let instance = generate::instance(n, m, min_p, max_p, omega, min_chain, max_chain);
+            files::write(job_file, constraint_file, instance);
         }
-    }
-}
-
-fn parse_input(job_file_path: &str, constraint_file_path: &str) -> Instance {
-    let mut rdr = ReaderBuilder::new()
-        .from_path(job_file_path)
-        .expect("could not read job CSV");
-    let headers = rdr.headers().expect("no headers in job file");
-    let header_count = headers.len();
-    if header_count <= 1 {
-        panic!("too few columns!");
-    }
-    if headers.iter().next().is_none_or(|name| name != "id") {
-        panic!("first column is not id");
-    }
-    let processor_count = header_count - 1;
-    let jobs = (1..)
-        .zip(rdr.records())
-        .map(|(index, record)| {
-            let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
-            Job {
-                id: record
-                    .get(0)
-                    .unwrap_or_else(|| panic!("missing id in row {index}"))
-                    .parse()
-                    .unwrap_or_else(|e| panic!("bad id in row {index}: {:#?}", e)),
-                index,
-                processing_times: record
-                    .iter()
-                    .enumerate()
-                    .skip(1)
-                    .map(|(column, cell)| {
-                        cell.parse().unwrap_or_else(|e| {
-                            panic!("bad processing time in cell at {index}:{column}: {:#?}", e)
-                        })
-                    })
-                    .collect(),
-            }
-        })
-        .collect();
-    let mut rdr = ReaderBuilder::new()
-        .from_path(constraint_file_path)
-        .expect("cound not read constraints CSV");
-    assert_eq!(
-        rdr.headers()
-            .expect("no headers in constraint file")
-            .iter()
-            .collect::<Vec<&str>>(),
-        vec!["id0", "id1"]
-    );
-    let constraints = (1..)
-        .zip(rdr.records())
-        .map(|(index, record)| {
-            let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
-            Constraint(
-                record
-                    .get(0)
-                    .unwrap_or_else(|| panic!("missing left side of constraint in row {index}"))
-                    .parse()
-                    .unwrap_or_else(|e| {
-                        panic!("bad id in left side of constraint in row {index}: {:#?}", e)
-                    }),
-                record
-                    .get(1)
-                    .unwrap_or_else(|| panic!("missing right side of constraint in row {index}"))
-                    .parse()
-                    .unwrap_or_else(|e| {
-                        panic!(
-                            "bad id in right side of constraint in row {index}: {:#?}",
-                            e
-                        )
-                    }),
-            )
-        })
-        .collect();
-
-    Instance {
-        processor_count,
-        jobs,
-        constraints,
     }
 }

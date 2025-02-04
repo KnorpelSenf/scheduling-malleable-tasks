@@ -1,15 +1,31 @@
-use crate::algo::Job;
+use crate::algo::{Constraint, Instance, Job};
 use rand::seq::SliceRandom;
 use rand::Rng;
 
-pub fn jobs(n: usize, min_p: usize, max_p: usize) -> Vec<Job> {
-    (0..n)
+pub fn instance(
+    n: &usize,
+    m: &usize,
+    min_p: &usize,
+    max_p: &usize,
+    omega: &usize,
+    min_chain: &usize,
+    max_chain: &usize,
+) -> Instance {
+    Instance {
+        processor_count: *m,
+        jobs: jobs(n, m, min_p, max_p),
+        constraints: constraints(n, omega, min_chain, max_chain),
+    }
+}
+
+fn jobs(n: &usize, m: &usize, min_p: &usize, max_p: &usize) -> Vec<Job> {
+    (0..*n)
         .map(|index| Job {
             id: index as i32,
             index: index.try_into().unwrap(),
-            processing_times: (0..n)
+            processing_times: (0..*m)
                 .map(|_| {
-                    let p = rand::rng().random_range(min_p..max_p);
+                    let p = rand::rng().random_range(*min_p..*max_p);
                     p.try_into().unwrap()
                 })
                 .collect(),
@@ -17,20 +33,20 @@ pub fn jobs(n: usize, min_p: usize, max_p: usize) -> Vec<Job> {
         .collect()
 }
 
-pub fn chains(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Vec<(usize, usize)> {
-    let mut indices = (1..n).collect::<Vec<_>>();
+fn constraints(n: &usize, omega: &usize, min_chain: &usize, max_chain: &usize) -> Vec<Constraint> {
+    let mut indices = (1..*n).collect::<Vec<_>>();
     indices.shuffle(&mut rand::rng());
 
-    let mut cuts = indices[0..omega].to_vec();
+    let mut cuts = indices[0..*omega].to_vec();
     cuts.sort();
-    cuts.ensure_slice_size(min_chain, max_chain);
+    cuts.ensure_slice_size(*min_chain, *max_chain);
 
-    let mut jobs = (0..n).collect::<Vec<_>>();
+    let mut jobs = (0..*n).collect::<Vec<_>>();
     jobs.shuffle(&mut rand::rng());
 
     jobs.windows(2)
-        .map(|jobs| (jobs[0], jobs[1]))
-        .filter(|(j1, _)| cuts.contains(&j1))
+        .map(|jobs| Constraint(jobs[0], jobs[1]))
+        .filter(|c| cuts.contains(&c.0))
         .collect()
 }
 

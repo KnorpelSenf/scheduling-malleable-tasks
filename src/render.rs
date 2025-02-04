@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use crate::{Schedule, ScheduledJob};
 use svg::{
     node::element::{
