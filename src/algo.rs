@@ -1,4 +1,4 @@
-use itertools::Itertools;
+use itertools::{enumerate, Itertools};
 use std::collections::{HashMap, LinkedList};
 
 /// A problem instance
@@ -136,65 +136,88 @@ pub fn schedule(instance: Instance) -> Schedule {
 }
 
 fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
-    let mut chains: Vec<LinkedList<usize>> = vec![];
-    let mut mapping: Vec<usize> = vec![];
-    let mut index: HashMap<usize, usize> = HashMap::new();
-    for &Constraint(l, r) in instance.constraints.iter() {
-        // Need to hash twice because we cannot borrow mut twice
-        let has_left = index.contains_key(&l);
-        let has_right = index.contains_key(&r);
-
-        if has_left && has_right {
-            // merge chains left and right containing l and r
-            let left_index = *index.get(&l).expect("bad check");
-            let right_index = *index.get(&r).expect("bad check");
-            let appendix = &mut mapping
-                .get(left_index)
-                .and_then(|&i| chains.get(i))
-                .expect("bad index")
-                .clone();
-            mapping
-                .get(right_index)
-                .and_then(|&i| chains.get_mut(i))
-                .expect("bad index")
-                .append(appendix);
-            mapping[left_index] = mapping[right_index];
-        } else if has_right {
-            // add l to chain
-            let right = *index.get(&r).expect("bad check");
-            mapping
-                .get(right)
-                .and_then(|&i| chains.get_mut(i))
-                .expect("bad index")
-                .push_back(l);
-            index.insert(l, right);
-        } else if has_left {
-            // add r to chain
-            let left = *index.get(&l).expect("bad check");
-            mapping
-                .get(left)
-                .and_then(|&i| chains.get_mut(i))
-                .expect("bad index")
-                .push_back(r);
-            index.insert(r, left);
-        } else {
-            // create a new chain with l and r
-            let mut chain = LinkedList::new();
-            chain.push_back(l);
-            chain.push_back(r);
-            let i = chains.len();
-            chains.push(chain);
-            let j = mapping.len();
-            mapping.push(i);
-            index.insert(l, j);
-            index.insert(r, j);
-        }
+    let mut chains = (0..instance.jobs.len())
+        .map(|i| vec![i])
+        .collect::<Vec<_>>();
+    for Constraint(l, r) in instance.constraints.iter() {
+        let (i, left) = chains
+            .iter()
+            .enumerate()
+            .find(|(_, chain)| chain.iter().contains(l))
+            .expect("bad constraint");
+        let mut left = left.clone();
+        let (j, right) = chains
+            .iter()
+            .enumerate()
+            .find(|(_, chain)| chain.iter().contains(r))
+            .expect("bad constraint");
+        let mut right = right.clone();
+        right.append(&mut left);
+        chains[i] = vec![];
+        chains[j] = right;
     }
-    index
-        .values()
-        .unique()
-        .filter_map(|&i| mapping.get(i))
-        .filter_map(|&i| chains.get(i))
-        .map(|list| list.iter().copied().collect::<Vec<_>>())
-        .collect::<Vec<_>>()
+    chains
+
+    // TODO: fix the following attempt at writing a faster impl
+    // let mut chains: Vec<LinkedList<usize>> = vec![];
+    // let mut mapping: Vec<usize> = vec![];
+    // let mut index: HashMap<usize, usize> = HashMap::new();
+    // for &Constraint(l, r) in instance.constraints.iter() {
+    //     // Need to hash twice because we cannot borrow mut twice
+    //     let has_left = index.contains_key(&l);
+    //     let has_right = index.contains_key(&r);
+
+    //     if has_left && has_right {
+    //         // merge chains left and right containing l and r
+    //         let left_index = *index.get(&l).expect("bad check");
+    //         let right_index = *index.get(&r).expect("bad check");
+    //         let appendix = &mut mapping
+    //             .get(left_index)
+    //             .and_then(|&i| chains.get(i))
+    //             .expect("bad index")
+    //             .clone();
+    //         mapping
+    //             .get(right_index)
+    //             .and_then(|&i| chains.get_mut(i))
+    //             .expect("bad index")
+    //             .append(appendix);
+    //         mapping[left_index] = mapping[right_index];
+    //     } else if has_right {
+    //         // add l to chain
+    //         let right = *index.get(&r).expect("bad check");
+    //         mapping
+    //             .get(right)
+    //             .and_then(|&i| chains.get_mut(i))
+    //             .expect("bad index")
+    //             .push_back(l);
+    //         index.insert(l, right);
+    //     } else if has_left {
+    //         // add r to chain
+    //         let left = *index.get(&l).expect("bad check");
+    //         mapping
+    //             .get(left)
+    //             .and_then(|&i| chains.get_mut(i))
+    //             .expect("bad index")
+    //             .push_back(r);
+    //         index.insert(r, left);
+    //     } else {
+    //         // create a new chain with l and r
+    //         let mut chain = LinkedList::new();
+    //         chain.push_back(l);
+    //         chain.push_back(r);
+    //         let i = chains.len();
+    //         chains.push(chain);
+    //         let j = mapping.len();
+    //         mapping.push(i);
+    //         index.insert(l, j);
+    //         index.insert(r, j);
+    //     }
+    // }
+    // index
+    //     .values()
+    //     .unique()
+    //     .filter_map(|&i| mapping.get(i))
+    //     .filter_map(|&i| chains.get(i))
+    //     .map(|list| list.iter().copied().collect::<Vec<_>>())
+    //     .collect::<Vec<_>>()
 }
