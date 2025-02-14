@@ -91,6 +91,7 @@ impl ScheduledJob {
 
 #[derive(Clone, Debug)]
 struct State {
+    len: usize,
     ideal: Vec<Option<Job>>,
     allotment: Vec<usize>,
     completion_times: Vec<i32>,
@@ -98,6 +99,7 @@ struct State {
 impl State {
     fn empty(omega: usize) -> Self {
         State {
+            len: omega,
             ideal: vec![None; omega],
             allotment: vec![0; omega],
             completion_times: vec![0; omega],
@@ -109,19 +111,26 @@ impl State {
             .map(|ideal| self.completion_times[i] - ideal.processing_time(self.allotment[i]))
             .unwrap_or(0)
     }
+    fn is_valid(&self) -> bool {
+        // TODO: iterate completion times, check the number of available
+        // processors at each time
+        true
+    }
     // fn try_add_job(&self, i: usize, job: Job) -> Option<Self> { None }
     // fn can_add(&self, i: usize, job: Job) -> bool { false }
-    // fn add_job(&self, i: usize, job: Job) -> Self {
-    //     let mut ideal = self.ideal.clone();
-    //     let allotment = self.allotment.clone();
-    //     let completion_times = self.completion_times.clone();
-    //     ideal[i] = Some(job);
-    //     State {
-    //         ideal,
-    //         allotment,
-    //         completion_times,
-    //     }
-    // }
+    fn add_job(&self, i: usize, job: &Job) -> Self {
+        let len = self.len;
+        let mut ideal = self.ideal.clone();
+        let allotment = self.allotment.clone();
+        let completion_times = self.completion_times.clone();
+        ideal[i] = Some(job.clone());
+        State {
+            len,
+            ideal,
+            allotment,
+            completion_times,
+        }
+    }
 }
 
 pub fn schedule(instance: Instance) -> Schedule {
@@ -129,10 +138,34 @@ pub fn schedule(instance: Instance) -> Schedule {
     let omega = chains.len();
     let initial_state = State::empty(omega);
 
+    let path = search(&instance, initial_state).expect("no solution found");
+    // path contains a list of indices in which to add jobs in order to
+    // reach the target state
+
+    // TODO: convert path in graph to vector of scheduled jobs
     Schedule {
         processor_count: instance.processor_count,
         jobs: vec![],
     }
+}
+
+fn search(instance: &Instance, state: State) -> Option<Vec<usize>> {
+    if !state.is_valid() {
+        return None;
+    };
+    for i in 0..state.len {
+        // TODO: look this up in some state table in order to avoid searching
+        // the entire tree
+        let new_state = state.add_job(i, &instance.jobs[i]);
+        let tail = search(instance, new_state);
+        if let Some(tail) = tail {
+            let mut path = Vec::with_capacity(tail.len() + 1);
+            path.push(i);
+            path.extend(tail);
+            return Some(path);
+        }
+    }
+    None
 }
 
 fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
