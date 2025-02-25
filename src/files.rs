@@ -37,7 +37,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
                     .collect(),
             }
         })
-        .collect();
+        .collect::<Vec<_>>();
     let mut rdr = ReaderBuilder::new()
         .from_path(constraint_file)
         .expect("cound not read constraints CSV");
@@ -74,10 +74,16 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         })
         .collect();
 
+    let max_time = *jobs
+        .iter()
+        .map(|job| job.processing_times.iter().max().unwrap_or(&0))
+        .max()
+        .unwrap_or(&0);
     Instance {
         processor_count,
         jobs,
         constraints,
+        max_time,
     }
 }
 

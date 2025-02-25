@@ -1,5 +1,5 @@
-use itertools::{enumerate, Itertools};
-use std::collections::{HashMap, LinkedList};
+use itertools::Itertools;
+use std::hash::Hash;
 
 /// A problem instance
 pub struct Instance {
@@ -9,6 +9,8 @@ pub struct Instance {
     pub jobs: Vec<Job>,
     /// A partial ordering on the jobs
     pub constraints: Vec<Constraint>,
+    /// The maximum number of seconds in the universe
+    pub max_time: i32,
 }
 /// A job in a problem instance
 #[derive(Clone, Debug, Default)]
@@ -97,12 +99,12 @@ struct State {
     completion_times: Vec<i32>,
 }
 impl State {
-    fn empty(omega: usize) -> Self {
+    fn empty(n: usize) -> Self {
         State {
-            len: omega,
-            ideal: vec![None; omega],
-            allotment: vec![0; omega],
-            completion_times: vec![0; omega],
+            len: n,
+            ideal: vec![None; n],
+            allotment: vec![0; n],
+            completion_times: vec![0; n],
         }
     }
     fn start_times(&self, i: usize) -> i32 {
@@ -114,16 +116,19 @@ impl State {
     fn is_valid(&self) -> bool {
         // TODO: iterate completion times, check the number of available
         // processors at each time
+
         true
     }
     // fn try_add_job(&self, i: usize, job: Job) -> Option<Self> { None }
     // fn can_add(&self, i: usize, job: Job) -> bool { false }
-    fn add_job(&self, i: usize, job: &Job) -> Self {
+    fn add_job(&self, i: usize, job: &Job, allot: usize, compl: i32) -> Self {
         let len = self.len;
         let mut ideal = self.ideal.clone();
-        let allotment = self.allotment.clone();
-        let completion_times = self.completion_times.clone();
+        let mut allotment = self.allotment.clone();
+        let mut completion_times = self.completion_times.clone();
         ideal[i] = Some(job.clone());
+        allotment[i] = allot;
+        completion_times[i] = compl;
         State {
             len,
             ideal,
@@ -132,11 +137,19 @@ impl State {
         }
     }
 }
+impl Hash for State {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        for job in self.ideal.iter() {
+            if let Some(job) = job {
+                job.id.hash(state);
+            }
+        }
+    }
+}
 
 pub fn schedule(instance: Instance) -> Schedule {
     let chains = preprocess(&instance);
-    let omega = chains.len();
-    let initial_state = State::empty(omega);
+    let initial_state = State::empty(instance.jobs.len());
 
     let path = search(&instance, initial_state).expect("no solution found");
     // path contains a list of indices in which to add jobs in order to
@@ -156,13 +169,19 @@ fn search(instance: &Instance, state: State) -> Option<Vec<usize>> {
     for i in 0..state.len {
         // TODO: look this up in some state table in order to avoid searching
         // the entire tree
-        let new_state = state.add_job(i, &instance.jobs[i]);
-        let tail = search(instance, new_state);
-        if let Some(tail) = tail {
-            let mut path = Vec::with_capacity(tail.len() + 1);
-            path.push(i);
-            path.extend(tail);
-            return Some(path);
+        let job = &instance.jobs[i];
+        for allot in 0..job.processing_times.len() {
+            for compl in 0..instance.max_time {
+                // TODO: check conditions 2 + 3
+                let new_state = state.add_job(i, job, allot, compl);
+                let tail = search(instance, new_state);
+                if let Some(tail) = tail {
+                    let mut path = Vec::with_capacity(tail.len() + 1);
+                    path.push(i);
+                    path.extend(tail);
+                    return Some(path);
+                }
+            }
         }
     }
     None

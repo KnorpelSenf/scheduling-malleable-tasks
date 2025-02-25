@@ -15,6 +15,7 @@ pub fn instance(
         processor_count: *m,
         jobs: jobs(n, m, min_p, max_p),
         constraints: constraints(n, omega, min_chain, max_chain),
+        max_time: (n * max_p) as i32,
     }
 }
 
@@ -22,12 +23,9 @@ fn jobs(n: &usize, m: &usize, min_p: &usize, max_p: &usize) -> Vec<Job> {
     (0..*n)
         .map(|index| Job {
             id: index as i32,
-            index: index.try_into().unwrap(),
+            index,
             processing_times: (0..*m)
-                .map(|_| {
-                    let p = rand::rng().random_range(*min_p..*max_p);
-                    p.try_into().unwrap()
-                })
+                .map(|_| rand::rng().random_range(*min_p..*max_p) as i32)
                 .collect(),
         })
         .collect()
