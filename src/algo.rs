@@ -161,48 +161,86 @@ fn search(
     // TODO: look this up in some state table in order to avoid searching
     // the entire tree
 
-    if state.ideal.len() + state.ideal.iter().sum::<usize>() == instance.jobs.len() {
+    if state.ideal.iter().sum::<usize>() == instance.jobs.len() {
         return Some(vec![]);
     }
 
     for (chain_index, chain) in chains.iter().enumerate() {
-        let front_task_index = state.ideal[chain_index];
-        if front_task_index + 1 < chain.len() {
-            let job_index = chain[front_task_index];
-            let job = &instance.jobs[job_index];
-            for (&processing_time, allotment) in job.processing_times.iter().zip(1..) {
-                for compl in 0..instance.max_time {
-                    // TODO: iterate completion times, check the number of available
-                    // processors at each time
+        let ideal = state.ideal[chain_index];
+        if ideal == chain.len() {
+            continue;
+        }
+        let new_job_index = chain[ideal];
+        let new_job = &instance.jobs[new_job_index];
+        for (&processing_time, allotment) in new_job.processing_times.iter().zip(1..) {
+            for compl in 0..instance.max_time {
+                // TODO: iterate completion times, check the number of available
+                // processors at each time
 
-                    let mut can_insert = true;
+                let mut can_insert = true;
 
-                    // TODO: check condition 2
+                let new_start_time = compl - processing_time;
+                for (chain_index, &ideal) in state.ideal.iter().enumerate() {
+                    let completion_time = state.completion_times[chain_index];
+                    let front_job_index = chains[chain_index][ideal];
+                    let front_job = &instance.jobs[front_job_index];
 
-                    let start_time = compl - job.processing_time(allotment);
-                    for (chain_index, &front_task_index) in state.ideal.iter().enumerate() {
-                        let job_index = chains[chain_index][front_task_index];
-                        let job = &instance.jobs[job_index];
+                    // Condition 2
+                    if front_job.less_than(&instance.constraints, new_job)
+                        && new_start_time < completion_time
+                    {
+                        can_insert = false;
+                        break;
+                    }
+                    // Condition 3
+                    let processing_time = front_job.processing_time(state.allotment[chain_index]);
+                    if new_start_time < completion_time - processing_time {
+                        can_insert = false;
+                        break;
+                    }
+                }
+
+                // Check if processor count exceeded
+                let mut pairs = state
+                    .ideal
+                    .iter()
+                    .enumerate()
+                    .flat_map(|(chain_index, &ideal)| {
+                        let front_job_index = chains[chain_index][ideal];
+                        let front_job = if new_job_index == front_job_index {
+                            new_job
+                        } else {
+                            &instance.jobs[front_job_index]
+                        };
                         let completion_time = state.completion_times[chain_index];
-                        let processing_time = job.processing_time(state.allotment[chain_index]);
-                        if start_time < completion_time - processing_time {
-                            can_insert = false;
-                            break;
-                        }
+                        let start_time = completion_time
+                            - front_job.processing_time(state.allotment[chain_index]);
+                        let a = allotment as i32;
+                        vec![(start_time, a), (completion_time, -a)]
+                    })
+                    .collect::<Vec<_>>();
+                pairs.sort_by_key(|p| p.0);
+                let limit = instance.processor_count as i32;
+                let mut utilisation = 0;
+                for (_, diff) in pairs {
+                    utilisation += diff;
+                    if utilisation > limit {
+                        can_insert = false;
+                        break;
                     }
+                }
 
-                    if !can_insert {
-                        continue;
-                    }
-                    let new_state = state.add_job(chain_index, allotment, compl);
+                if !can_insert {
+                    continue;
+                }
+                let new_state = state.add_job(chain_index, allotment, compl);
 
-                    let tail = search(instance, chains, new_state);
-                    if let Some(tail) = tail {
-                        let mut path = Vec::with_capacity(tail.len() + 1);
-                        path.push((job_index, allotment, compl));
-                        path.extend(tail);
-                        return Some(path);
-                    }
+                let tail = search(instance, chains, new_state);
+                if let Some(tail) = tail {
+                    let mut path = Vec::with_capacity(tail.len() + 1);
+                    path.push((new_job_index, allotment, compl));
+                    path.extend(tail);
+                    return Some(path);
                 }
             }
         }
@@ -210,90 +248,4 @@ fn search(
     None
 }
 
-fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
-    let mut chains = (0..instance.jobs.len())
-        .map(|i| vec![i])
-        .collect::<Vec<_>>();
-    for Constraint(l, r) in instance.constraints.iter() {
-        let (i, left) = chains
-            .iter()
-            .enumerate()
-            .find(|(_, chain)| chain.iter().contains(l))
-            .expect("bad constraint");
-        let mut left = left.clone();
-        let (j, right) = chains
-            .iter()
-            .enumerate()
-            .find(|(_, chain)| chain.iter().contains(r))
-            .expect("bad constraint");
-        let mut right = right.clone();
-        right.append(&mut left);
-        chains[i] = vec![];
-        chains[j] = right;
-    }
-    println!("preprocessed {:?} to chains {:?}", instance, chains);
-    chains
-
-    // TODO: fix the following attempt at writing a faster impl
-    // let mut chains: Vec<LinkedList<usize>> = vec![];
-    // let mut mapping: Vec<usize> = vec![];
-    // let mut index: HashMap<usize, usize> = HashMap::new();
-    // for &Constraint(l, r) in instance.constraints.iter() {
-    //     // Need to hash twice because we cannot borrow mut twice
-    //     let has_left = index.contains_key(&l);
-    //     let has_right = index.contains_key(&r);
-
-    //     if has_left && has_right {
-    //         // merge chains left and right containing l and r
-    //         let left_index = *index.get(&l).expect("bad check");
-    //         let right_index = *index.get(&r).expect("bad check");
-    //         let appendix = &mut mapping
-    //             .get(left_index)
-    //             .and_then(|&i| chains.get(i))
-    //             .expect("bad index")
-    //             .clone();
-    //         mapping
-    //             .get(right_index)
-    //             .and_then(|&i| chains.get_mut(i))
-    //             .expect("bad index")
-    //             .append(appendix);
-    //         mapping[left_index] = mapping[right_index];
-    //     } else if has_right {
-    //         // add l to chain
-    //         let right = *index.get(&r).expect("bad check");
-    //         mapping
-    //             .get(right)
-    //             .and_then(|&i| chains.get_mut(i))
-    //             .expect("bad index")
-    //             .push_back(l);
-    //         index.insert(l, right);
-    //     } else if has_left {
-    //         // add r to chain
-    //         let left = *index.get(&l).expect("bad check");
-    //         mapping
-    //             .get(left)
-    //             .and_then(|&i| chains.get_mut(i))
-    //             .expect("bad index")
-    //             .push_back(r);
-    //         index.insert(r, left);
-    //     } else {
-    //         // create a new chain with l and r
-    //         let mut chain = LinkedList::new();
-    //         chain.push_back(l);
-    //         chain.push_back(r);
-    //         let i = chains.len();
-    //         chains.push(chain);
-    //         let j = mapping.len();
-    //         mapping.push(i);
-    //         index.insert(l, j);
-    //         index.insert(r, j);
-    //     }
-    // }
-    // index
-    //     .values()
-    //     .unique()
-    //     .filter_map(|&i| mapping.get(i))
-    //     .filter_map(|&i| chains.get(i))
-    //     .map(|list| list.iter().copied().collect::<Vec<_>>())
-    //     .collect::<Vec<_>>()
-}
+fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {}
