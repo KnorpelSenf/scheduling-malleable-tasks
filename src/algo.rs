@@ -248,4 +248,18 @@ fn search(
     None
 }
 
-fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {}
+fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
+    let mut chains: Vec<Vec<usize>> = vec![];
+    for (job_index, job) in instance.jobs.iter().enumerate() {
+        if let Some(chain) = chains.iter_mut().find(|chain| {
+            chain
+                .iter()
+                .any(|&i| instance.jobs[i].is_comparable(&instance.constraints, job))
+        }) {
+            chain.push(job_index);
+        } else {
+            chains.push(vec![job_index]);
+        }
+    }
+    chains
+}
