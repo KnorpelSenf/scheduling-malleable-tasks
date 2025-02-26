@@ -47,11 +47,11 @@ enum Commands {
     /// Generates a random instance of the scheduling problem
     Generate {
         /// Number of jobs to generate
-        #[arg(short, long)]
+        #[arg(short)]
         n: usize,
 
         /// Number of processors
-        #[arg(short, long)]
+        #[arg(short)]
         m: usize,
 
         /// Maximum processing time for each job

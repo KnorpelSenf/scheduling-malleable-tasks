@@ -1,5 +1,4 @@
-use itertools::Itertools;
-use std::hash::Hash;
+use std::{cmp::Ordering, hash::Hash};
 
 /// A problem instance
 #[derive(Debug)]
@@ -143,6 +142,7 @@ pub fn schedule(instance: Instance) -> Schedule {
     let initial_state = State::empty(omega);
 
     let path = search(&instance, &chains, initial_state).expect("no solution found");
+    println!("path is now: {:#?}", path);
     // path contains a list of indices in which to add jobs in order to
     // reach the target state
 
@@ -180,9 +180,11 @@ fn search(
                 let mut can_insert = true;
 
                 let new_start_time = compl - processing_time;
-                for (chain_index, &ideal) in state.ideal.iter().enumerate() {
+                for (chain_index, &ideal) in
+                    state.ideal.iter().filter(|&&ideal| ideal != 0).enumerate()
+                {
                     let completion_time = state.completion_times[chain_index];
-                    let front_job_index = chains[chain_index][ideal];
+                    let front_job_index = chains[chain_index][ideal - 1];
                     let front_job = &instance.jobs[front_job_index];
 
                     // Condition 2
@@ -204,9 +206,10 @@ fn search(
                 let mut pairs = state
                     .ideal
                     .iter()
+                    .filter(|&&ideal| ideal != 0)
                     .enumerate()
                     .flat_map(|(chain_index, &ideal)| {
-                        let front_job_index = chains[chain_index][ideal];
+                        let front_job_index = chains[chain_index][ideal - 1];
                         let front_job = if new_job_index == front_job_index {
                             new_job
                         } else {
@@ -254,12 +257,21 @@ fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
         if let Some(chain) = chains.iter_mut().find(|chain| {
             chain
                 .iter()
-                .any(|&i| instance.jobs[i].is_comparable(&instance.constraints, job))
+                .all(|&i| instance.jobs[i].is_comparable(&instance.constraints, job))
         }) {
             chain.push(job_index);
         } else {
             chains.push(vec![job_index]);
         }
+    }
+    for chain in chains.iter_mut() {
+        chain.sort_by(|&left, &right| {
+            match instance.jobs[left].compare(&instance.constraints, &instance.jobs[right]) {
+                Some(true) => Ordering::Less,
+                Some(false) => Ordering::Greater,
+                _ => panic!("welp"),
+            }
+        });
     }
     chains
 }
