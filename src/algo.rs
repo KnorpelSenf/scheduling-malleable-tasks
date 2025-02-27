@@ -202,6 +202,9 @@ fn search(
                         break;
                     }
                 }
+                if !can_insert {
+                    continue;
+                }
 
                 // Check if processor count exceeded
                 let mut pairs = state
