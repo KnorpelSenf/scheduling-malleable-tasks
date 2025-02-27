@@ -178,9 +178,12 @@ fn search(
                 // TODO: iterate completion times, check the number of available
                 // processors at each time
 
-                let mut can_insert = true;
-
                 let new_start_time = compl - processing_time;
+                if new_start_time < 0 {
+                    continue;
+                }
+
+                let mut can_insert = true;
                 for (chain_index, &ideal) in
                     state.ideal.iter().filter(|&&ideal| ideal != 0).enumerate()
                 {
