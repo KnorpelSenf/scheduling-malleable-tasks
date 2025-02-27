@@ -1,7 +1,10 @@
+use std::{fs, io::Write, time::Instant};
+
 use algo::{Schedule, ScheduledJob};
 use render::render_schedule;
 
 use clap::{Parser, Subcommand};
+use open::that as open_that;
 
 mod algo;
 mod files;
@@ -115,44 +118,83 @@ fn main() {
     let cli = Cli::parse();
 
     match &cli.command {
-        Commands::Solve {
-            job_file,
-            constraint_file,
-            ..
+        &Commands::Solve {
+            ref job_file,
+            ref constraint_file,
+            epsilon,
+            svg,
+            open,
         } => {
             let instance = files::read(job_file, constraint_file);
 
+            let before = Instant::now();
             let schedule = algo::schedule(instance);
-            println!("{}", render_schedule(schedule));
+            let duration = before.elapsed();
+            println!(
+                "Needed {:?} to schedule {} jobs on {} processors for {} seconds",
+                duration,
+                schedule.jobs.len(),
+                schedule.processor_count,
+                schedule
+                    .jobs
+                    .iter()
+                    .map(|job| job.start_time + job.processing_time())
+                    .max()
+                    .unwrap_or(0)
+            );
+            if svg {
+                let rendered = render_schedule(schedule);
+
+                fs::create_dir_all("./schedules/").expect("cannot create directory ./schedules");
+                let path = generate_filename(job_file, constraint_file, epsilon);
+                let mut file = fs::File::create(path.clone())
+                    .unwrap_or_else(|e| panic!("cannot create file {path}: {e}"));
+                file.write_all(rendered.as_bytes())
+                    .unwrap_or_else(|e| panic!("cannot write to file {path}: {e}"));
+                println!("Result is written to {path}");
+
+                if open {
+                    println!("Opening file ...");
+                    if let Err(e) = open_that(path) {
+                        println!("Could not open file!, {:#?}", e);
+                    }
+                }
+            } else {
+                println!();
+                if open {
+                    println!("  hint: Ignored --open because no schedule file was written");
+                }
+                println!("  hint: Specify --svg to write a schedule file");
+            }
         }
-        Commands::Generate {
+        &Commands::Generate {
             n,
             m,
             min: min_p,
             max: max_p,
-            job_file,
             omega,
             min_chain,
             max_chain,
-            constraint_file,
+            ref job_file,
+            ref constraint_file,
         } => {
-            assert!(n >= &1, "n must be at least 1");
-            assert!(min_p >= &1, "min_p must be at least 1");
+            assert!(n >= 1, "n must be at least 1");
+            assert!(min_p >= 1, "min_p must be at least 1");
             assert!(max_p >= min_p, "max_p must be at least min_p");
-            assert!(omega >= &1, "omega must be at least 1");
-            assert!(*omega <= *n as usize, "omega must be at most n");
-            assert!(min_chain >= &1, "min_chain must be at least 1");
+            assert!(omega >= 1, "omega must be at least 1");
+            assert!(omega <= n as usize, "omega must be at most n");
+            assert!(min_chain >= 1, "min_chain must be at least 1");
             assert!(
                 max_chain >= min_chain,
                 "max_chain must be at least min_chain"
             );
-            assert!(*max_chain <= *n as usize, "max_chain must be at most n");
+            assert!(max_chain <= n as usize, "max_chain must be at most n");
             assert!(
-                *min_chain * omega <= *n as usize,
+                min_chain * omega <= n as usize,
                 "min_chain * omega must be at at most n"
             );
             assert!(
-                *max_chain * omega >= *n as usize,
+                max_chain * omega >= n as usize,
                 "max_chain * omega must be at at least n"
             );
 
@@ -160,4 +202,15 @@ fn main() {
             files::write(job_file, constraint_file, instance);
         }
     }
+}
+
+fn generate_filename(job_file: &str, constraint_file: &str, epsilon: f64) -> String {
+    let epsilon = epsilon.to_string();
+    let mut path =
+        String::with_capacity(job_file.len() + constraint_file.len() + 9 + epsilon.len());
+    path.push_str(&job_file);
+    path.push_str(&constraint_file);
+    path.push_str(&"_schedule_");
+    path.push_str(&epsilon.to_string());
+    path
 }

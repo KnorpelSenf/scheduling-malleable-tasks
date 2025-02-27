@@ -3,43 +3,43 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 
 pub fn instance(
-    n: &usize,
-    m: &usize,
-    min_p: &usize,
-    max_p: &usize,
-    omega: &usize,
-    min_chain: &usize,
-    max_chain: &usize,
+    n: usize,
+    m: usize,
+    min_p: usize,
+    max_p: usize,
+    omega: usize,
+    min_chain: usize,
+    max_chain: usize,
 ) -> Instance {
     Instance {
-        processor_count: *m,
+        processor_count: m,
         jobs: jobs(n, m, min_p, max_p),
         constraints: constraints(n, omega, min_chain, max_chain),
         max_time: (n * max_p) as i32,
     }
 }
 
-fn jobs(n: &usize, m: &usize, min_p: &usize, max_p: &usize) -> Vec<Job> {
-    (0..*n)
+fn jobs(n: usize, m: usize, min_p: usize, max_p: usize) -> Vec<Job> {
+    (0..n)
         .map(|index| Job {
             id: index as i32,
             index,
-            processing_times: (0..*m)
-                .map(|_| rand::rng().random_range(*min_p..*max_p) as i32)
+            processing_times: (0..m)
+                .map(|_| rand::rng().random_range(min_p..max_p) as i32)
                 .collect(),
         })
         .collect()
 }
 
-fn constraints(n: &usize, omega: &usize, min_chain: &usize, max_chain: &usize) -> Vec<Constraint> {
-    let mut indices = (1..*n).collect::<Vec<_>>();
+fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Vec<Constraint> {
+    let mut indices = (1..n).collect::<Vec<_>>();
     indices.shuffle(&mut rand::rng());
 
-    let mut cuts = indices[0..*omega].to_vec();
+    let mut cuts = indices[0..omega].to_vec();
     cuts.sort();
-    cuts.ensure_slice_size(*min_chain, *max_chain);
+    cuts.ensure_slice_size(min_chain, max_chain);
 
-    let mut jobs = (0..*n).collect::<Vec<_>>();
+    let mut jobs = (0..n).collect::<Vec<_>>();
     jobs.shuffle(&mut rand::rng());
 
     jobs.windows(2)
