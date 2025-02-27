@@ -1,4 +1,4 @@
-use std::{fs, io::Write, time::Instant};
+use std::{fs, io::Write, path, time::Instant};
 
 use algo::{Schedule, ScheduledJob};
 use render::render_schedule;
@@ -205,12 +205,15 @@ fn main() {
 }
 
 fn generate_filename(job_file: &str, constraint_file: &str, epsilon: f64) -> String {
-    let epsilon = epsilon.to_string();
-    let mut path =
-        String::with_capacity(job_file.len() + constraint_file.len() + 9 + epsilon.len());
-    path.push_str(&job_file);
-    path.push_str(&constraint_file);
-    path.push_str(&"_schedule_");
-    path.push_str(&epsilon.to_string());
-    path
+    let job_file = path::Path::new(job_file)
+        .file_stem()
+        .unwrap_or_else(|| panic!("Cound not get filename of {job_file}"))
+        .to_str()
+        .expect("invalid UTF-8 in job file name");
+    let constraint_file = path::Path::new(constraint_file)
+        .file_stem()
+        .unwrap_or_else(|| panic!("Cound not get filename of {constraint_file}"))
+        .to_str()
+        .expect("invalid UTF-8 in job file name");
+    format!("./schedules/{job_file}_{constraint_file}_schedule_{epsilon}.svg")
 }
