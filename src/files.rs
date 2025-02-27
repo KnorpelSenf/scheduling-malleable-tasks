@@ -14,15 +14,17 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         panic!("first column is not id");
     }
     let processor_count = header_count - 1;
-    let jobs = (1..)
-        .zip(rdr.records())
+    let jobs = rdr
+        .records()
+        .enumerate()
         .map(|(index, record)| {
-            let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
+            let row = index + 1;
+            let record = record.unwrap_or_else(|e| panic!("cannot parse record {row}: {:#?}", e));
             let id: i32 = record
                 .get(0)
-                .unwrap_or_else(|| panic!("missing id in row {index}"))
+                .unwrap_or_else(|| panic!("missing id in row {row}"))
                 .parse()
-                .unwrap_or_else(|e| panic!("bad id in row {index}: {:#?}", e));
+                .unwrap_or_else(|e| panic!("bad id in row {row}: {:#?}", e));
             (
                 id,
                 Job {
@@ -33,7 +35,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
                         .skip(1)
                         .map(|(column, cell)| {
                             cell.parse().unwrap_or_else(|e| {
-                                panic!("bad processing time in cell at {index}:{column}: {:#?}", e)
+                                panic!("bad processing time in cell at {row}:{column}: {:#?}", e)
                             })
                         })
                         .collect(),
@@ -51,26 +53,25 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
             .collect::<Vec<&str>>(),
         vec!["id0", "id1"]
     );
-    let constraints = (1..)
-        .zip(rdr.records())
+    let constraints = rdr
+        .records()
+        .enumerate()
         .map(|(index, record)| {
-            let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
+            let row = index + 1;
+            let record = record.unwrap_or_else(|e| panic!("cannot parse record {row}: {:#?}", e));
             let left: i32 = record
                 .get(0)
-                .unwrap_or_else(|| panic!("missing left side of constraint in row {index}"))
+                .unwrap_or_else(|| panic!("missing left side of constraint in row {row}"))
                 .parse()
                 .unwrap_or_else(|e| {
-                    panic!("bad id in left side of constraint in row {index}: {:#?}", e)
+                    panic!("bad id in left side of constraint in row {row}: {:#?}", e)
                 });
             let right: i32 = record
                 .get(1)
-                .unwrap_or_else(|| panic!("missing right side of constraint in row {index}"))
+                .unwrap_or_else(|| panic!("missing right side of constraint in row {row}"))
                 .parse()
                 .unwrap_or_else(|e| {
-                    panic!(
-                        "bad id in right side of constraint in row {index}: {:#?}",
-                        e
-                    )
+                    panic!("bad id in right side of constraint in row {row}: {:#?}", e)
                 });
 
             Constraint(
