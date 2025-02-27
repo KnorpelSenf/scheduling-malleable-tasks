@@ -141,16 +141,11 @@ pub fn schedule(instance: Instance) -> Schedule {
     let chains = preprocess(&instance);
     let omega = chains.len();
     let initial_state = State::empty(omega);
-
-    let path = search(&instance, &chains, initial_state).expect("no solution found");
-    println!("path is now: {:#?}", path);
-    // path contains a list of indices in which to add jobs in order to
-    // reach the target state
-
-    // TODO: convert path in graph to vector of scheduled jobs
+    let jobs = search(&instance, &chains, initial_state).expect("no solution found");
+    println!("jobs are {:#?}", jobs);
     Schedule {
         processor_count: instance.processor_count,
-        jobs: vec![],
+        jobs,
     }
 }
 
@@ -158,7 +153,7 @@ fn search(
     instance: &Instance,
     chains: &Vec<Vec<usize>>,
     state: State,
-) -> Option<Vec<(usize, usize, i32)>> {
+) -> Option<Vec<ScheduledJob>> {
     // TODO: look this up in some state table in order to avoid searching
     // the entire tree
 
@@ -239,16 +234,22 @@ fn search(
                         break;
                     }
                 }
-
                 if !can_insert {
                     continue;
                 }
+
                 let new_state = state.add_job(chain_index, allotment, compl);
 
                 let tail = search(instance, chains, new_state);
                 if let Some(tail) = tail {
                     let mut path = Vec::with_capacity(tail.len() + 1);
-                    path.push((new_job_index, allotment, compl));
+                    let job = instance.jobs[new_job_index].clone();
+                    let start_time = compl - job.processing_time(allotment);
+                    path.push(ScheduledJob {
+                        job,
+                        allotment,
+                        start_time,
+                    });
                     path.extend(tail);
                     return Some(path);
                 }
