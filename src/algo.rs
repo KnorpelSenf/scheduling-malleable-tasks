@@ -275,7 +275,7 @@ fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
             match instance.jobs[left].compare(&instance.constraints, &instance.jobs[right]) {
                 Some(true) => Ordering::Less,
                 Some(false) => Ordering::Greater,
-                _ => panic!("welp"),
+                _ => panic!("chain contains two non-comparable jobs"),
             }
         });
     }
