@@ -35,7 +35,7 @@ fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Ve
     let mut indices = Vec::from_iter(1..n);
     indices.shuffle(&mut rand::rng());
 
-    let mut cuts = indices[0..omega].to_vec();
+    let mut cuts = indices[0..omega - 1].to_vec();
     cuts.sort();
     cuts.ensure_slice_size(min_chain, max_chain);
 
