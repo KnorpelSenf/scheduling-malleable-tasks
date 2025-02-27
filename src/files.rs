@@ -74,11 +74,12 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         })
         .collect();
 
-    let max_time = *jobs
-        .iter()
-        .map(|job| job.processing_times.iter().max().unwrap_or(&0))
-        .max()
-        .unwrap_or(&0);
+    let max_time = jobs.len() as i32
+        * jobs
+            .iter()
+            .map(|job| job.processing_times.iter().max().copied().unwrap_or(0))
+            .max()
+            .unwrap_or(0);
     Instance {
         processor_count,
         jobs,
