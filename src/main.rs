@@ -118,9 +118,7 @@ fn main() {
         Commands::Solve {
             job_file,
             constraint_file,
-            epsilon,
-            svg,
-            open,
+            ..
         } => {
             let instance = files::read(job_file, constraint_file);
 
