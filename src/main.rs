@@ -23,10 +23,6 @@ struct Cli {
 enum Commands {
     /// Solves a given instance of the scheduling problem
     Solve {
-        /// Solution accuracy
-        #[arg(short, long)]
-        epsilon: f64,
-
         /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
         /// column p_i contains the processing time if the job were to be executed
         /// on i machines.
@@ -92,7 +88,6 @@ fn main() {
         &Commands::Solve {
             ref job_file,
             ref constraint_file,
-            epsilon,
             svg,
             open,
         } => {
@@ -117,7 +112,7 @@ fn main() {
                 let rendered = render_schedule(schedule);
 
                 fs::create_dir_all("./schedules/").expect("cannot create directory ./schedules");
-                let path = generate_filename(job_file, constraint_file, epsilon);
+                let path = generate_filename(job_file, constraint_file);
                 let mut file = fs::File::create(path.clone())
                     .unwrap_or_else(|e| panic!("cannot create file {path}: {e}"));
                 file.write_all(rendered.as_bytes())
@@ -175,7 +170,7 @@ fn main() {
     }
 }
 
-fn generate_filename(job_file: &str, constraint_file: &str, epsilon: f64) -> String {
+fn generate_filename(job_file: &str, constraint_file: &str) -> String {
     let job_file = path::Path::new(job_file)
         .file_stem()
         .unwrap_or_else(|| panic!("Cound not get filename of {job_file}"))
@@ -186,5 +181,5 @@ fn generate_filename(job_file: &str, constraint_file: &str, epsilon: f64) -> Str
         .unwrap_or_else(|| panic!("Cound not get filename of {constraint_file}"))
         .to_str()
         .expect("invalid UTF-8 in job file name");
-    format!("./schedules/{job_file}_{constraint_file}_schedule_{epsilon}.svg")
+    format!("./schedules/{job_file}_{constraint_file}_schedule.svg")
 }
