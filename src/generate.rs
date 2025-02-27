@@ -1,4 +1,5 @@
 use crate::algo::{Constraint, Instance, Job};
+use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::Rng;
 
@@ -31,20 +32,28 @@ fn jobs(n: usize, m: usize, min_p: usize, max_p: usize) -> Vec<Job> {
 }
 
 fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Vec<Constraint> {
-    let mut indices = (1..n).collect::<Vec<_>>();
+    let mut indices = Vec::from_iter(1..n);
     indices.shuffle(&mut rand::rng());
 
     let mut cuts = indices[0..omega].to_vec();
     cuts.sort();
     cuts.ensure_slice_size(min_chain, max_chain);
 
-    let mut jobs = (0..n).collect::<Vec<_>>();
-    jobs.shuffle(&mut rand::rng());
-
-    jobs.windows(2)
-        .map(|jobs| Constraint(jobs[0], jobs[1]))
-        .filter(|c| cuts.contains(&c.0))
-        .collect()
+    vec![0]
+        .iter()
+        .chain(cuts.iter())
+        .chain(vec![n].iter())
+        .tuple_windows()
+        .fold(vec![], |constraints, (&l, &r)| {
+            constraints
+                .into_iter()
+                .chain(
+                    (l..r)
+                        .flat_map(|job0| (job0..r).map(move |job1| (job0, job1)))
+                        .map(|(left, right)| Constraint(left, right)),
+                )
+                .collect::<Vec<_>>()
+        })
 }
 
 trait SlicesWithSize {
