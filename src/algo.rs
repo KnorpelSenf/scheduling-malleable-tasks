@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, hash::Hash};
+use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 /// A problem instance
 #[derive(Debug)]
@@ -91,7 +91,7 @@ impl ScheduledJob {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 /// A state in our dynamic program
 struct State {
     /// For each chain, how far have we advanced this chain
@@ -139,7 +139,8 @@ pub fn schedule(instance: Instance) -> Schedule {
     let chains = preprocess(&instance);
     let omega = chains.len();
     let initial_state = State::empty(omega);
-    let jobs = search(&instance, &chains, initial_state).expect("no solution found");
+    let jobs =
+        search(&instance, &chains, initial_state, &mut HashSet::new()).expect("no solution found");
     println!("jobs are {:#?}", jobs);
     Schedule {
         processor_count: instance.processor_count,
@@ -151,10 +152,8 @@ fn search(
     instance: &Instance,
     chains: &Vec<Vec<usize>>,
     state: State,
+    known: &mut HashSet<State>,
 ) -> Option<Vec<ScheduledJob>> {
-    // TODO: look this up in some state table in order to avoid searching
-    // the entire tree
-
     if state.ideal.iter().sum::<usize>() == instance.jobs.len() {
         return Some(vec![]);
     }
@@ -168,9 +167,6 @@ fn search(
         let new_job = &instance.jobs[new_job_index];
         for (&processing_time, allotment) in new_job.processing_times.iter().zip(1..) {
             for compl in 0..instance.max_time {
-                // TODO: iterate completion times, check the number of available
-                // processors at each time
-
                 let new_start_time = compl - processing_time;
                 if new_start_time < 0 {
                     continue;
@@ -237,8 +233,12 @@ fn search(
                 }
 
                 let new_state = state.add_job(chain_index, allotment, compl);
+                let is_new = known.insert(new_state.clone());
+                if !is_new {
+                    continue;
+                }
 
-                let tail = search(instance, chains, new_state);
+                let tail = search(instance, chains, new_state, known);
                 if let Some(tail) = tail {
                     let mut path = Vec::with_capacity(tail.len() + 1);
                     let job = instance.jobs[new_job_index].clone();
