@@ -109,9 +109,8 @@ fn add_jobs_to_doc(document: SVG, processor_count: usize, mut jobs: Vec<Schedule
                     .take(job.allotment)
                     .map(|(proc, _)| proc)
                     .collect();
-                assert_eq!(
-                    processors.len(),
-                    job.allotment,
+                assert!(
+                    job.allotment <= processors.len(),
                     "insufficient number of processors available"
                 );
                 let end = job.start_time + job.processing_time();
@@ -143,14 +142,14 @@ fn add_job_to_doc(document: SVG, processors: Vec<usize>, y: usize, job: Schedule
             .set("fill", "#0000f8")
             .set("class", "machine-box");
 
-        let machine_label = Text::new(job.job.id.to_string())
+        let machine_label = Text::new(job.job.index.to_string())
             .set("x", x + w / 2) // Centered on the rectangle
             .set("y", y + h / 2)
             .set("class", "machine-label");
 
         let tooltip = Title::new(format!(
             "Job {}\n\nallotment: {} processors\nprocessing time: {} s",
-            job.job.id, job.allotment, processing_time
+            job.job.index, job.allotment, processing_time
         ));
 
         let group = Group::new()

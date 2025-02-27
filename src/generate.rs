@@ -22,7 +22,6 @@ pub fn instance(
 fn jobs(n: usize, m: usize, min_p: usize, max_p: usize) -> Vec<Job> {
     (0..n)
         .map(|index| Job {
-            id: index as i32,
             index,
             processing_times: (0..m)
                 .map(|_| rand::rng().random_range(min_p..max_p) as i32)

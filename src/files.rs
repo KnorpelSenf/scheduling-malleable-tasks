@@ -18,24 +18,27 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         .zip(rdr.records())
         .map(|(index, record)| {
             let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
-            Job {
-                id: record
-                    .get(0)
-                    .unwrap_or_else(|| panic!("missing id in row {index}"))
-                    .parse()
-                    .unwrap_or_else(|e| panic!("bad id in row {index}: {:#?}", e)),
-                index,
-                processing_times: record
-                    .iter()
-                    .enumerate()
-                    .skip(1)
-                    .map(|(column, cell)| {
-                        cell.parse().unwrap_or_else(|e| {
-                            panic!("bad processing time in cell at {index}:{column}: {:#?}", e)
+            let id: i32 = record
+                .get(0)
+                .unwrap_or_else(|| panic!("missing id in row {index}"))
+                .parse()
+                .unwrap_or_else(|e| panic!("bad id in row {index}: {:#?}", e));
+            (
+                id,
+                Job {
+                    index,
+                    processing_times: record
+                        .iter()
+                        .enumerate()
+                        .skip(1)
+                        .map(|(column, cell)| {
+                            cell.parse().unwrap_or_else(|e| {
+                                panic!("bad processing time in cell at {index}:{column}: {:#?}", e)
+                            })
                         })
-                    })
-                    .collect(),
-            }
+                        .collect(),
+                },
+            )
         })
         .collect::<Vec<_>>();
     let mut rdr = ReaderBuilder::new()
@@ -52,24 +55,35 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         .zip(rdr.records())
         .map(|(index, record)| {
             let record = record.unwrap_or_else(|e| panic!("cannot parse record {index}: {:#?}", e));
+            let left: i32 = record
+                .get(0)
+                .unwrap_or_else(|| panic!("missing left side of constraint in row {index}"))
+                .parse()
+                .unwrap_or_else(|e| {
+                    panic!("bad id in left side of constraint in row {index}: {:#?}", e)
+                });
+            let right: i32 = record
+                .get(1)
+                .unwrap_or_else(|| panic!("missing right side of constraint in row {index}"))
+                .parse()
+                .unwrap_or_else(|e| {
+                    panic!(
+                        "bad id in right side of constraint in row {index}: {:#?}",
+                        e
+                    )
+                });
+
             Constraint(
-                record
-                    .get(0)
-                    .unwrap_or_else(|| panic!("missing left side of constraint in row {index}"))
-                    .parse()
-                    .unwrap_or_else(|e| {
-                        panic!("bad id in left side of constraint in row {index}: {:#?}", e)
-                    }),
-                record
-                    .get(1)
-                    .unwrap_or_else(|| panic!("missing right side of constraint in row {index}"))
-                    .parse()
-                    .unwrap_or_else(|e| {
-                        panic!(
-                            "bad id in right side of constraint in row {index}: {:#?}",
-                            e
-                        )
-                    }),
+                jobs.iter()
+                    .find(|(id, _)| *id == left)
+                    .expect("bad left side")
+                    .1
+                    .index,
+                jobs.iter()
+                    .find(|(id, _)| *id == right)
+                    .expect("bad right side")
+                    .1
+                    .index,
             )
         })
         .collect();
@@ -77,12 +91,13 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
     let max_time = jobs.len() as i32
         * jobs
             .iter()
-            .map(|job| job.processing_times.iter().max().copied().unwrap_or(0))
+            .map(|job| job.1.processing_times.iter().max().copied().unwrap_or(0))
             .max()
             .unwrap_or(0);
+
     Instance {
         processor_count,
-        jobs,
+        jobs: jobs.into_iter().map(|pair| pair.1).collect(),
         constraints,
         max_time,
     }
@@ -95,7 +110,7 @@ pub fn write(job_file: &str, constraint_file: &str, instance: Instance) {
     wtr.write_record(headers).expect("could not write headers");
     for job in instance.jobs {
         wtr.write_record(
-            std::iter::once(job.id.to_string())
+            std::iter::once(job.index.to_string())
                 .chain(job.processing_times.into_iter().map(|p| p.to_string())),
         )
         .expect("could not write job");

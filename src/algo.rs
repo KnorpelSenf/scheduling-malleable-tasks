@@ -15,8 +15,6 @@ pub struct Instance {
 /// A job in a problem instance
 #[derive(Clone, Debug, Default)]
 pub struct Job {
-    /// External identifier of the job
-    pub id: i32,
     /// Index of the job
     pub index: usize,
     /// Processing times of the job based on how many machines is has available.
