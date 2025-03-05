@@ -2,6 +2,7 @@ use crate::algo::{Constraint, Instance, Job};
 use itertools::Itertools;
 use rand::seq::SliceRandom;
 use rand::Rng;
+use std::cmp;
 
 pub fn instance(
     n: usize,
@@ -11,16 +12,31 @@ pub fn instance(
     omega: usize,
     min_chain: usize,
     max_chain: usize,
+    monotonous: bool,
 ) -> Instance {
     Instance {
         processor_count: m,
-        jobs: jobs(n, m, min_p, max_p),
+        jobs: jobs(n, m, min_p, max_p, monotonous),
         constraints: constraints(n, omega, min_chain, max_chain),
         max_time: (n * max_p) as i32,
     }
 }
 
-fn jobs(n: usize, m: usize, min_p: usize, max_p: usize) -> Vec<Job> {
+fn jobs(n: usize, m: usize, min_p: usize, max_p: usize, monotonous: bool) -> Vec<Job> {
+    if monotonous {
+        return (0..n)
+            .map(|index| {
+                let p = rand::rng().random_range(min_p..max_p) as f64;
+                let cutoff = rand::rng().random_range(0..m);
+                Job {
+                    index,
+                    processing_times: (0..m)
+                        .map(|i| (p / cmp::min(i, cutoff) as f64 + 1.0) as i32)
+                        .collect(),
+                }
+            })
+            .collect();
+    }
     (0..n)
         .map(|index| Job {
             index,

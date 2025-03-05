@@ -104,6 +104,10 @@ enum Commands {
         /// Output CSV file containing constraints between jobs
         #[arg(short, long)]
         constraint_file: String,
+
+        /// Monotonically increasing processing times
+        #[arg(long)]
+        monotonous: bool,
     },
 }
 
@@ -137,6 +141,7 @@ fn main() {
             max_chain,
             ref job_file,
             ref constraint_file,
+            monotonous,
         } => {
             assert!(n >= 1, "n must be at least 1");
             assert!(min_p >= 1, "min_p must be at least 1");
@@ -158,7 +163,8 @@ fn main() {
                 "max_chain * omega must be at at least n"
             );
 
-            let instance = generate::instance(n, m, min_p, max_p, omega, min_chain, max_chain);
+            let instance =
+                generate::instance(n, m, min_p, max_p, omega, min_chain, max_chain, monotonous);
             files::write(job_file, constraint_file, instance);
         }
     }
