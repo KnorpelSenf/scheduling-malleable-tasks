@@ -111,6 +111,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f46ad14479a25103f283c0f10005961cf086d8dc42205bb44c46ac563475dca6"
 
 [[package]]
+name = "coin_cbc"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d602045cd2e7ad02608a71492af94357f493a6f3c934ce854c03bf10fddc5780"
+dependencies = [
+ "coin_cbc_sys",
+ "lazy_static",
+]
+
+[[package]]
+name = "coin_cbc_sys"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "085619f8bdc38e24e25c6336ecc3f2e6c0543d67566dff6daef0e32f7ac20f76"
+dependencies = [
+ "pkg-config",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -144,6 +163,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "60b1af1c220855b6ceac025d3f6ecdd2b7c4894bfe9cd9bda4fbb4bc7c0d4cf0"
 
 [[package]]
+name = "fnv"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
 name = "getrandom"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -153,6 +178,16 @@ dependencies = [
  "libc",
  "wasi",
  "windows-targets",
+]
+
+[[package]]
+name = "good_lp"
+version = "1.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ada2d4e8d3e6fb80d007479bbcf318882e65c21798c6587a693dffcf271e3f3e"
+dependencies = [
+ "coin_cbc",
+ "fnv",
 ]
 
 [[package]]
@@ -202,6 +237,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d75a2a4b1b190afb6f5425f10f6a8f959d2ea0b9c2b1d79553551850539e4674"
 
 [[package]]
+name = "lazy_static"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
+
+[[package]]
 name = "libc"
 version = "0.2.169"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -235,6 +276,12 @@ name = "pathdiff"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df94ce210e5bc13cb6651479fa48d14f601d9858cfe0467f43ae157023b938d3"
+
+[[package]]
+name = "pkg-config"
+version = "0.3.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7edddbd0b52d732b21ad9a5fab5c704c14cd949e5e9a1ec5929a24fded1b904c"
 
 [[package]]
 name = "ppv-lite86"
@@ -306,6 +353,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "csv",
+ "good_lp",
  "itertools",
  "open",
  "rand",
