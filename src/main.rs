@@ -1,14 +1,16 @@
 use std::{fs, io::Write, path, time::Instant};
 
-use algo::{Schedule, ScheduledJob};
+use algo::{Instance, Schedule, ScheduledJob};
 use render::render_schedule;
 
 use clap::{Parser, Subcommand};
 use open::that as open_that;
 
 mod algo;
+mod dp;
 mod files;
 mod generate;
+mod ilp;
 mod render;
 
 #[derive(Parser)]
@@ -22,7 +24,29 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Solves a given instance of the scheduling problem
-    Solve {
+    SolveDp {
+        /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
+        /// column p_i contains the processing time if the job were to be executed
+        /// on i machines.
+        #[arg(short, long)]
+        job_file: String,
+
+        /// Input CSV file containing constraints between jobs in the format
+        /// "id0,id1" where each line expresses that the job with id0 is less than
+        /// the job with id1.
+        #[arg(short, long)]
+        constraint_file: String,
+
+        /// Render the schedule to an SVG file in the directory "schedules"
+        #[arg(long)]
+        svg: bool,
+
+        /// Open the rendered SVG if created
+        #[arg(long)]
+        open: bool,
+    },
+    /// Solves a given instance of the scheduling problem
+    SolveIlp {
         /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
         /// column p_i contains the processing time if the job were to be executed
         /// on i machines.
@@ -85,53 +109,23 @@ enum Commands {
 
 fn main() {
     match &Cli::parse().command {
-        &Commands::Solve {
+        &Commands::SolveDp {
             ref job_file,
             ref constraint_file,
             svg,
             open,
         } => {
-            let instance = files::read(job_file, constraint_file);
-
-            let before = Instant::now();
-            let schedule = algo::schedule(instance);
-            let duration = before.elapsed();
-            println!(
-                "Needed {:?} to schedule {} jobs on {} processors for {} seconds",
-                duration,
-                schedule.jobs.len(),
-                schedule.processor_count,
-                schedule
-                    .jobs
-                    .iter()
-                    .map(|job| job.start_time + job.processing_time())
-                    .max()
-                    .unwrap_or(0)
-            );
-            if svg {
-                let rendered = render_schedule(schedule);
-
-                fs::create_dir_all("./schedules/").expect("cannot create directory ./schedules");
-                let path = generate_filename(job_file, constraint_file);
-                let mut file = fs::File::create(path.clone())
-                    .unwrap_or_else(|e| panic!("cannot create file {path}: {e}"));
-                file.write_all(rendered.as_bytes())
-                    .unwrap_or_else(|e| panic!("cannot write to file {path}: {e}"));
-                println!("Result is written to {path}");
-
-                if open {
-                    println!("Opening file ...");
-                    if let Err(e) = open_that(&path) {
-                        eprintln!("Could not open file {path}: {:#?}", e);
-                    }
-                }
-            } else {
-                println!();
-                if open {
-                    println!("  hint: Ignored --open because no schedule file was written");
-                }
-                println!("  hint: Specify --svg to write a schedule file");
-            }
+            let schedule = run_algo(dp::schedule, job_file, constraint_file);
+            process_schedule(schedule, job_file, constraint_file, svg, open);
+        }
+        &Commands::SolveIlp {
+            ref job_file,
+            ref constraint_file,
+            svg,
+            open,
+        } => {
+            let schedule = run_algo(ilp::schedule, job_file, constraint_file);
+            process_schedule(schedule, job_file, constraint_file, svg, open);
         }
         &Commands::Generate {
             n,
@@ -167,6 +161,64 @@ fn main() {
             let instance = generate::instance(n, m, min_p, max_p, omega, min_chain, max_chain);
             files::write(job_file, constraint_file, instance);
         }
+    }
+}
+
+fn run_algo<T: FnOnce(Instance) -> Schedule>(
+    algo: T,
+    job_file: &str,
+    constraint_file: &str,
+) -> Schedule {
+    let instance = files::read(job_file, constraint_file);
+
+    let before = Instant::now();
+    let schedule = algo(instance);
+    let duration = before.elapsed();
+    println!(
+        "Needed {:?} to schedule {} jobs on {} processors for {} seconds",
+        duration,
+        schedule.jobs.len(),
+        schedule.processor_count,
+        schedule
+            .jobs
+            .iter()
+            .map(|job| job.start_time + job.processing_time())
+            .max()
+            .unwrap_or(0)
+    );
+    schedule
+}
+
+fn process_schedule(
+    schedule: Schedule,
+    job_file: &str,
+    constraint_file: &str,
+    svg: bool,
+    open: bool,
+) {
+    if svg {
+        let rendered = render_schedule(schedule);
+
+        fs::create_dir_all("./schedules/").expect("cannot create directory ./schedules");
+        let path = generate_filename(job_file, constraint_file);
+        let mut file = fs::File::create(path.clone())
+            .unwrap_or_else(|e| panic!("cannot create file {path}: {e}"));
+        file.write_all(rendered.as_bytes())
+            .unwrap_or_else(|e| panic!("cannot write to file {path}: {e}"));
+        println!("Result is written to {path}");
+
+        if open {
+            println!("Opening file ...");
+            if let Err(e) = open_that(&path) {
+                eprintln!("Could not open file {path}: {:#?}", e);
+            }
+        }
+    } else {
+        println!();
+        if open {
+            println!("  hint: Ignored --open because no schedule file was written");
+        }
+        println!("  hint: Specify --svg to write a schedule file");
     }
 }
 
