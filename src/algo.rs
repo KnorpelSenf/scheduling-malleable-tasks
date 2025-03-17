@@ -40,15 +40,14 @@ pub trait PartialRelation {
     fn less_than(&self, relation: &Vec<Constraint>, other: &Self) -> bool {
         self.compare(relation, other).is_some_and(|less| less)
     }
+    // /// Returns `true` if other is in relation to self, and `false` otherwise
+    fn greater_than(&self, relation: &Vec<Constraint>, other: &Self) -> bool {
+        self.compare(relation, other).is_some_and(|less| !less)
+    }
     /// Returns `None` if self and other are incomparable. Returns `Some(true)`
     /// if self is less than other and returns `Some(false)` if other is less
     /// than self.
     fn compare(&self, relation: &Vec<Constraint>, other: &Self) -> Option<bool>;
-
-    // /// Returns `true` if other is in relation to self, and `false` otherwise
-    // fn greater_than(&self, relation: &Vec<Constraint>, other: &Self) -> bool {
-    //     self.compare(relation, other).is_some_and(|less| !less)
-    // }
 }
 impl PartialRelation for Job {
     fn compare(&self, relation: &Vec<Constraint>, other: &Self) -> Option<bool> {
