@@ -105,7 +105,7 @@ enum Commands {
         #[arg(short, long)]
         constraint_file: String,
 
-        /// Monotonically increasing processing times
+        /// Monotonically decreasing processing times using the concave function 1 / l
         #[arg(long)]
         concave: bool,
     },
