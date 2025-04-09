@@ -12,18 +12,18 @@ pub fn instance(
     omega: usize,
     min_chain: usize,
     max_chain: usize,
-    monotonous: bool,
+    concave: bool,
 ) -> Instance {
     Instance {
         processor_count: m,
-        jobs: jobs(n, m, min_p, max_p, monotonous),
+        jobs: jobs(n, m, min_p, max_p, concave),
         constraints: constraints(n, omega, min_chain, max_chain),
         max_time: (n * max_p) as i32,
     }
 }
 
-fn jobs(n: usize, m: usize, min_p: usize, max_p: usize, monotonous: bool) -> Vec<Job> {
-    if monotonous {
+fn jobs(n: usize, m: usize, min_p: usize, max_p: usize, concave: bool) -> Vec<Job> {
+    if concave {
         return (0..n)
             .map(|index| {
                 let p = rand::rng().random_range(min_p..max_p) as f64;

@@ -107,7 +107,7 @@ enum Commands {
 
         /// Monotonically increasing processing times
         #[arg(long)]
-        monotonous: bool,
+        concave: bool,
     },
 }
 
@@ -141,7 +141,7 @@ fn main() {
             max_chain,
             ref job_file,
             ref constraint_file,
-            monotonous,
+            concave,
         } => {
             assert!(n >= 1, "n must be at least 1");
             assert!(min_p >= 1, "min_p must be at least 1");
@@ -164,7 +164,7 @@ fn main() {
             );
 
             let instance =
-                generate::instance(n, m, min_p, max_p, omega, min_chain, max_chain, monotonous);
+                generate::instance(n, m, min_p, max_p, omega, min_chain, max_chain, concave);
             files::write(job_file, constraint_file, instance);
         }
     }
