@@ -3,11 +3,19 @@ use good_lp::{constraint, default_solver, variable, variables, Expression, Solut
 
 use crate::algo::{Instance, Job, PartialRelation, Schedule};
 
-// impl Job {
-//     fn work(&self, allotment: usize) -> i32 {
-//         allotment as i32 * self.processing_time(allotment)
-//     }
-// }
+impl Job {
+    fn closest_allotment(&self, processing_time: i32) -> usize {
+        1 + self
+            .processing_times
+            .iter()
+            .copied()
+            .map(|x| processing_time.abs_diff(x))
+            .enumerate()
+            .min_by_key(|&(_, diff)| diff)
+            .expect("no processing times")
+            .0
+    }
+}
 
 impl Instance {
     fn predecessors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
@@ -99,16 +107,31 @@ pub fn schedule(instance: Instance) -> Schedule {
     let solution = problem
         .solve()
         .unwrap_or_else(|e| panic!("no solution: {e}"));
+    let processing_times = processing_times
+        .into_iter()
+        .map(|v| solution.value(v).round() as i32)
+        .collect::<Vec<_>>();
+    let completion_times = completion_times
+        .into_iter()
+        .map(|v| solution.value(v).round() as i32)
+        .collect::<Vec<_>>();
+    // - round it to a feasible allotment
+    let allotments = processing_times
+        .iter()
+        .copied()
+        .zip(instance.jobs)
+        .map(|(x_j, job)| job.closest_allotment(x_j))
+        .collect::<Vec<_>>();
+    // print solution
     for (i, x_j) in processing_times.into_iter().enumerate() {
-        println!("x_{i} = {}", solution.value(x_j));
+        println!("x_{i} = {}", x_j);
     }
     for (i, c_j) in completion_times.into_iter().enumerate() {
-        println!("C_{i} = {}", solution.value(c_j));
+        println!("C_{i} = {}", c_j);
     }
-    for (i, w_j) in work.into_iter().enumerate() {
-        println!("w_{i} = {}", solution.value(w_j));
+    for (i, l_j) in allotments.into_iter().enumerate() {
+        println!("l_{i} = {}", l_j);
     }
-    // - round it to a feasible allotment
 
     // PHASE 2: list schedule
     // - generate new allotment
