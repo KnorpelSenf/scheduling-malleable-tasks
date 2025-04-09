@@ -14,14 +14,14 @@ impl Instance {
         self.jobs
             .iter()
             .enumerate()
-            .filter(|(_, j)| j.less_than(&self.constraints, job))
+            .filter(|(_, j)| job.index != j.index && j.less_than(&self.constraints, job))
             .collect()
     }
     fn successors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
         self.jobs
             .iter()
             .enumerate()
-            .filter(|(_, j)| j.greater_than(&self.constraints, job))
+            .filter(|(_, j)| job.index != j.index && j.greater_than(&self.constraints, job))
             .collect()
     }
 }
@@ -30,9 +30,9 @@ pub fn schedule(instance: Instance) -> Schedule {
     // initialization step
     let m = instance.jobs.len() as i32;
     // - compute rounding parameter rho
-    let rho = compute_rho(m);
+    // let rho = compute_rho(m);
     // - compute allotment parameter µ
-    let my = compute_my(m);
+    // let my = compute_my(m);
 
     // PHASE 1: linear program
     // - define linear program
@@ -49,10 +49,10 @@ pub fn schedule(instance: Instance) -> Schedule {
     let processing_times = instance
         .jobs
         .iter()
-        .map(|j| {
+        .map(|job| {
             vars.add(variable().clamp(
-                j.processing_time(instance.processor_count),
-                j.processing_time(1),
+                job.processing_time(instance.processor_count),
+                job.processing_time(1),
             ))
         })
         .collect::<Vec<_>>();
@@ -62,7 +62,8 @@ pub fn schedule(instance: Instance) -> Schedule {
         .map(|_| vars.add(variable().clamp(0, cpl)))
         .collect::<Vec<_>>();
     // minimize makespan
-    let problem = vars.minimise(makespan).using(default_solver);
+    let mut problem = vars.minimise(makespan).using(default_solver);
+    problem.set_parameter("log", "3");
     // set the makespan as the maximum completion time
     let problem = completion_times.iter().fold(problem, |prob, &c_j| {
         prob.with(constraint!(makespan >= c_j))
@@ -83,7 +84,7 @@ pub fn schedule(instance: Instance) -> Schedule {
                 })
         });
     // (9)
-    let problem = (0..m as usize - 1).fold(problem, |prob, l| {
+    let problem = (1..=instance.processor_count - 1).fold(problem, |prob, l| {
         (0..m as usize).fold(prob, |p, j| {
             let job = &instance.jobs[j];
             let p_j_l = job.processing_time(l);
@@ -92,7 +93,8 @@ pub fn schedule(instance: Instance) -> Schedule {
             let lp1 = l + 1;
             let r = (lp1 * p_j_lp1 - l * p_j_l) / (p_j_lp1 - p_j_l);
             let s = (p_j_l * p_j_lp1) / (p_j_lp1 - p_j_l);
-            let w_j = p_j_l - 1;
+            let w_j = p_j_l - l;
+            println!("[l={l}] {r} * p_{j} - {s} <= {w_j}");
             p.with(constraint!(r * processing_times[j] - s <= w_j))
         })
     });
