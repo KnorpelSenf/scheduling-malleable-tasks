@@ -1,5 +1,5 @@
 use cpm_rs::{CustomTask, Scheduler};
-use good_lp::{constraint, default_solver, variable, variables, Solution, SolverModel};
+use good_lp::{constraint, default_solver, variable, variables, Expression, Solution, SolverModel};
 
 use crate::algo::{Instance, Job, PartialRelation, Schedule};
 
@@ -37,13 +37,6 @@ pub fn schedule(instance: Instance) -> Schedule {
     // PHASE 1: linear program
     // - define linear program
     let cpl = critical_path_length(&instance);
-    let w_by_m = (instance
-        .jobs
-        .iter()
-        .map(|job| job.processing_time(1))
-        .sum::<i32>()
-        - m)
-        / m;
     let mut vars = variables!();
     let makespan = vars.add(variable().min(0));
     let processing_times = instance
@@ -61,9 +54,13 @@ pub fn schedule(instance: Instance) -> Schedule {
         .iter()
         .map(|_| vars.add(variable().clamp(0, cpl)))
         .collect::<Vec<_>>();
+    let work = instance
+        .jobs
+        .iter()
+        .map(|_| vars.add(variable()))
+        .collect::<Vec<_>>();
     // minimize makespan
-    let mut problem = vars.minimise(makespan).using(default_solver);
-    problem.set_parameter("log", "3");
+    let problem = vars.minimise(makespan).using(default_solver);
     // set the makespan as the maximum completion time
     let problem = completion_times.iter().fold(problem, |prob, &c_j| {
         prob.with(constraint!(makespan >= c_j))
@@ -93,12 +90,10 @@ pub fn schedule(instance: Instance) -> Schedule {
             let lp1 = l + 1;
             let r = (lp1 * p_j_lp1 - l * p_j_l) / (p_j_lp1 - p_j_l);
             let s = (p_j_l * p_j_lp1) / (p_j_lp1 - p_j_l);
-            let w_j = p_j_l - l;
-            println!("[l={l}] {r} * p_{j} - {s} <= {w_j}");
-            p.with(constraint!(r * processing_times[j] - s <= w_j))
+            p.with(constraint!(r * processing_times[j] - s <= work[j]))
         })
     });
-    let problem = problem.with(constraint!(w_by_m <= makespan));
+    let problem = problem.with(constraint!(work.iter().sum::<Expression>() / m <= makespan));
 
     // - obtain fractional solution
     let solution = problem
@@ -109,6 +104,9 @@ pub fn schedule(instance: Instance) -> Schedule {
     }
     for (i, c_j) in completion_times.into_iter().enumerate() {
         println!("C_{i} = {}", solution.value(c_j));
+    }
+    for (i, w_j) in work.into_iter().enumerate() {
+        println!("w_{i} = {}", solution.value(w_j));
     }
     // - round it to a feasible allotment
 
