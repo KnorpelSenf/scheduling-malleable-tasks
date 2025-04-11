@@ -137,19 +137,6 @@ pub fn schedule(instance: Instance) -> Schedule {
     for (i, l_j) in allotments.iter().copied().enumerate() {
         println!("l_{i} = {}", l_j);
     }
-    // let offset = -completion_times
-    //     .iter()
-    //     .zip(allotments.iter().copied())
-    //     .enumerate()
-    //     .map(|(job, (c_j, l_j))| c_j - instance.jobs[job].processing_time(l_j))
-    //     .min()
-    //     .unwrap_or(0);
-
-    // println!("offset = {offset}");
-    // let completion_times = completion_times
-    //     .into_iter()
-    //     .map(|c_j| offset + c_j)
-    //     .collect::<Vec<_>>();
 
     // PHASE 2: list schedule
 
