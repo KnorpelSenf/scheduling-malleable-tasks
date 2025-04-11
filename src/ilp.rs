@@ -1,7 +1,8 @@
 use cpm_rs::{CustomTask, Scheduler};
 use good_lp::{constraint, default_solver, variable, variables, Expression, Solution, SolverModel};
+use itertools::{all, Itertools};
 
-use crate::algo::{Instance, Job, PartialRelation, Schedule};
+use crate::algo::{Instance, Job, PartialRelation, Schedule, ScheduledJob};
 
 impl Job {
     fn closest_allotment(&self, processing_time: i32) -> usize {
@@ -16,6 +17,12 @@ impl Job {
             .0
     }
 }
+impl PartialEq for Job {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
+    }
+}
+// impl Eq for Job {}
 
 impl Instance {
     fn predecessors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
@@ -38,9 +45,9 @@ pub fn schedule(instance: Instance) -> Schedule {
     // initialization step
     let m = instance.jobs.len() as i32;
     // - compute rounding parameter rho
-    // let rho = compute_rho(m);
+    let rho = compute_rho(m);
     // - compute allotment parameter µ
-    // let my = compute_my(m);
+    let my = compute_my(m);
 
     // PHASE 1: linear program
     // - define linear program
@@ -115,36 +122,81 @@ pub fn schedule(instance: Instance) -> Schedule {
         .into_iter()
         .map(|v| solution.value(v).round() as i32)
         .collect::<Vec<_>>();
+
+    for (i, x_j) in processing_times.iter().copied().enumerate() {
+        // print solution
+        println!("x_{i} = {}", x_j);
+    }
+    for (i, c_j) in completion_times.iter().copied().enumerate() {
+        println!("C_{i} = {}", c_j);
+    }
+
     // - round it to a feasible allotment
     let allotments = processing_times
         .iter()
         .copied()
-        .zip(instance.jobs)
+        .zip(instance.jobs.iter())
         .map(|(x_j, job)| job.closest_allotment(x_j))
         .collect::<Vec<_>>();
-    // print solution
-    for (i, x_j) in processing_times.into_iter().enumerate() {
-        println!("x_{i} = {}", x_j);
-    }
-    for (i, c_j) in completion_times.into_iter().enumerate() {
-        println!("C_{i} = {}", c_j);
-    }
-    for (i, l_j) in allotments.into_iter().enumerate() {
-        println!("l_{i} = {}", l_j);
-    }
 
     // PHASE 2: list schedule
-    // - generate new allotment
-    // - run LIST to generate feasible schedule
+    let my = compute_my(m).floor() as usize;
+    let allotments = allotments
+        .into_iter()
+        .map(|a| a.min(my))
+        .collect::<Vec<_>>();
+    // find all starting times
+    let starting_times = completion_times
+        .into_iter()
+        .zip(allotments.iter().copied())
+        .enumerate()
+        .map(|(i, (c_j, l_j))| c_j - instance.jobs[i].processing_time(l_j))
+        .collect::<Vec<_>>();
 
-    todo!("implement ILP schedule")
+    // - run LIST to generate feasible schedule
+    let mut jobs = (0..instance.jobs.len())
+        .map(|i| (i, true))
+        .collect::<Vec<_>>();
+    let mut scheduled_jobs = vec![];
+    while !jobs.is_empty() {
+        // find READY jobs
+        let pick = jobs
+            .iter()
+            .filter(|(_, available)| *available)
+            .map(|(i, _)| *i)
+            .filter(|&job| {
+                instance
+                    .predecessors(&instance.jobs[job])
+                    .iter()
+                    .all(|(_, job)| {
+                        scheduled_jobs
+                            .iter()
+                            .any(|s: &ScheduledJob| s.job.index == job.index)
+                    })
+            })
+            // take min by starting time
+            .min_by_key(|&i| starting_times[i])
+            .expect("no job ready");
+        jobs[pick].1 = false;
+        let job = ScheduledJob {
+            job: instance.jobs[pick].clone(),
+            allotment: allotments[pick],
+            start_time: starting_times[pick],
+        };
+        scheduled_jobs.push(job);
+    }
+    Schedule {
+        processor_count: instance.processor_count,
+        jobs: scheduled_jobs,
+    }
 }
 
 fn compute_rho(m: i32) -> f64 {
     todo!()
 }
 fn compute_my(m: i32) -> f64 {
-    todo!()
+    let m = m as f64;
+    0.01 * (113.0 * m - ((6469.0 * m * m) - 6300.0 * m).sqrt())
 }
 fn critical_path_length(instance: &Instance) -> i32 {
     let mut scheduler = Scheduler::<i32>::new();
