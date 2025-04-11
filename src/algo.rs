@@ -86,4 +86,8 @@ impl ScheduledJob {
     pub fn processing_time(&self) -> i32 {
         self.job.processing_time(self.allotment)
     }
+    /// Computes the completion time of the job based on the current allotment
+    pub fn completion_time(&self) -> i32 {
+        self.start_time + self.processing_time()
+    }
 }

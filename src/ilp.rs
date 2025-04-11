@@ -1,6 +1,5 @@
 use cpm_rs::{CustomTask, Scheduler};
 use good_lp::{constraint, default_solver, variable, variables, Expression, Solution, SolverModel};
-use itertools::{all, Itertools};
 
 use crate::algo::{Instance, Job, PartialRelation, Schedule, ScheduledJob};
 
@@ -44,10 +43,6 @@ impl Instance {
 pub fn schedule(instance: Instance) -> Schedule {
     // initialization step
     let m = instance.jobs.len() as i32;
-    // - compute rounding parameter rho
-    let rho = compute_rho(m);
-    // - compute allotment parameter µ
-    let my = compute_my(m);
 
     // PHASE 1: linear program
     // - define linear program
@@ -130,59 +125,91 @@ pub fn schedule(instance: Instance) -> Schedule {
     for (i, c_j) in completion_times.iter().copied().enumerate() {
         println!("C_{i} = {}", c_j);
     }
-
     // - round it to a feasible allotment
+    // - compute allotment parameter µ
+    let my = compute_my(m).floor() as usize;
     let allotments = processing_times
         .iter()
         .copied()
         .zip(instance.jobs.iter())
-        .map(|(x_j, job)| job.closest_allotment(x_j))
+        .map(|(x_j, job)| job.closest_allotment(x_j).min(my))
         .collect::<Vec<_>>();
+    for (i, l_j) in allotments.iter().copied().enumerate() {
+        println!("l_{i} = {}", l_j);
+    }
+    // let offset = -completion_times
+    //     .iter()
+    //     .zip(allotments.iter().copied())
+    //     .enumerate()
+    //     .map(|(job, (c_j, l_j))| c_j - instance.jobs[job].processing_time(l_j))
+    //     .min()
+    //     .unwrap_or(0);
+
+    // println!("offset = {offset}");
+    // let completion_times = completion_times
+    //     .into_iter()
+    //     .map(|c_j| offset + c_j)
+    //     .collect::<Vec<_>>();
 
     // PHASE 2: list schedule
-    let my = compute_my(m).floor() as usize;
-    let allotments = allotments
-        .into_iter()
-        .map(|a| a.min(my))
-        .collect::<Vec<_>>();
-    // find all starting times
-    let starting_times = completion_times
-        .into_iter()
-        .zip(allotments.iter().copied())
-        .enumerate()
-        .map(|(i, (c_j, l_j))| c_j - instance.jobs[i].processing_time(l_j))
-        .collect::<Vec<_>>();
 
     // - run LIST to generate feasible schedule
     let mut jobs = (0..instance.jobs.len())
         .map(|i| (i, true))
         .collect::<Vec<_>>();
-    let mut scheduled_jobs = vec![];
-    while !jobs.is_empty() {
+    let mut scheduled_jobs: Vec<ScheduledJob> = vec![];
+    let mut occupation = vec![0; instance.processor_count];
+    for _ in 0..jobs.len() {
         // find READY jobs
-        let pick = jobs
+        let (pick, start_time) = jobs
             .iter()
             .filter(|(_, available)| *available)
-            .map(|(i, _)| *i)
-            .filter(|&job| {
+            .filter_map(|&(job, _)| {
                 instance
                     .predecessors(&instance.jobs[job])
                     .iter()
-                    .all(|(_, job)| {
-                        scheduled_jobs
-                            .iter()
-                            .any(|s: &ScheduledJob| s.job.index == job.index)
-                    })
+                    .map(|(_, p)| scheduled_jobs.iter().find(|s| s.job.index == p.index))
+                    .collect::<Option<Vec<_>>>()
+                    .map(|s| (job, s))
+            })
+            .map(|(job, scheduled_predecessors)| {
+                let allotment = allotments[job];
+                let starting_time =
+                    completion_times[job] - instance.jobs[job].processing_time(allotment);
+
+                let predecessors_finished_at = scheduled_predecessors
+                    .iter()
+                    .map(|s| s.completion_time())
+                    .max()
+                    .unwrap_or(0);
+
+                let fit = occupation[occupation.len() - allotment];
+
+                let earliest = starting_time.max(predecessors_finished_at).max(fit);
+
+                (job, earliest)
             })
             // take min by starting time
-            .min_by_key(|&i| starting_times[i])
+            .min_by_key(|&(_, alpha)| alpha)
             .expect("no job ready");
         jobs[pick].1 = false;
+        let allotment = allotments[pick];
         let job = ScheduledJob {
             job: instance.jobs[pick].clone(),
-            allotment: allotments[pick],
-            start_time: starting_times[pick],
+            allotment,
+            start_time,
         };
+        // update occupation
+        let machine = occupation
+            .iter()
+            .enumerate()
+            .find(|(_, o)| **o <= start_time)
+            .expect("bad start time")
+            .0;
+        let done = job.completion_time();
+        for i in machine..machine + allotment {
+            occupation[i] = done;
+        }
         scheduled_jobs.push(job);
     }
     Schedule {
@@ -191,9 +218,6 @@ pub fn schedule(instance: Instance) -> Schedule {
     }
 }
 
-fn compute_rho(m: i32) -> f64 {
-    todo!()
-}
 fn compute_my(m: i32) -> f64 {
     let m = m as f64;
     0.01 * (113.0 * m - ((6469.0 * m * m) - 6300.0 * m).sqrt())
