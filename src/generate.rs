@@ -49,11 +49,11 @@ fn jobs(n: usize, m: usize, min_p: usize, max_p: usize, concave: bool) -> Vec<Jo
 }
 
 fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Vec<Constraint> {
-    let mut indices = Vec::from_iter(1..n);
+    let mut indices = (1..n).collect::<Vec<_>>();
     indices.shuffle(&mut rand::rng());
 
     let mut cuts = indices[0..omega - 1].to_vec();
-    cuts.sort();
+    cuts.sort_unstable();
     cuts.ensure_slice_size(min_chain, max_chain);
 
     [0].iter()

@@ -46,13 +46,14 @@ impl Hash for State {
     }
 }
 
+#[expect(clippy::needless_pass_by_value)]
 pub fn schedule(instance: Instance) -> Schedule {
     let chains = preprocess(&instance);
     let omega = chains.len();
     let initial_state = State::empty(omega);
     let jobs =
-        search(&instance, &chains, initial_state, &mut HashSet::new()).expect("no solution found");
-    println!("jobs are {:#?}", jobs);
+        search(&instance, &chains, &initial_state, &mut HashSet::new()).expect("no solution found");
+    println!("jobs are {jobs:#?}");
     Schedule {
         processor_count: instance.processor_count,
         jobs,
@@ -62,7 +63,7 @@ pub fn schedule(instance: Instance) -> Schedule {
 fn search(
     instance: &Instance,
     chains: &Vec<Vec<usize>>,
-    state: State,
+    state: &State,
     known: &mut HashSet<State>,
 ) -> Option<Vec<ScheduledJob>> {
     if state.ideal.iter().sum::<usize>() == instance.jobs.len() {
@@ -149,7 +150,7 @@ fn search(
                     continue;
                 }
 
-                let tail = search(instance, chains, new_state, known);
+                let tail = search(instance, chains, &new_state, known);
                 if let Some(tail) = tail {
                     let mut path = Vec::with_capacity(tail.len() + 1);
                     let job = instance.jobs[new_job_index].clone();
@@ -181,7 +182,7 @@ fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
             chains.push(vec![job_index]);
         }
     }
-    for chain in chains.iter_mut() {
+    for chain in &mut chains {
         chain.sort_by(|&left, &right| {
             match instance.jobs[left].compare(&instance.constraints, &instance.jobs[right]) {
                 Some(true) => Ordering::Less,

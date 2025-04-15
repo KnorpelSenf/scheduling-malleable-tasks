@@ -5,6 +5,7 @@ use good_lp::{
 
 use crate::algo::{Instance, Job, Schedule, ScheduledJob};
 
+#[expect(clippy::too_many_lines, clippy::needless_pass_by_value)]
 pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     // initialization step
     let m = instance.processor_count;
@@ -115,7 +116,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
         .collect::<Vec<_>>();
 
     for (i, c_j) in completion_times.iter().copied().enumerate() {
-        println!("C_{i} = {}", c_j);
+        println!("C_{i} = {c_j}");
     }
 
     let allotments = virtual_processing_times
@@ -128,20 +129,19 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
                     let val = solution.value(var);
                     println!("x_{j}_{i} = {val}");
                     let p_j_i = instance.jobs[j].processing_time(i);
-                    if val < p_j_i as f64 * rho {
+                    if val < f64::from(p_j_i) * rho {
                         (i, 0)
                     } else {
                         (i, p_j_i)
                     }
                 })
                 .max_by_key(|&(_, p)| p)
-                .map(|(i, _)| i)
-                .unwrap_or(0)
+                .map_or(0, |(i, _)| i)
         })
         .collect::<Vec<_>>();
 
     for (i, l_j) in allotments.iter().copied().enumerate() {
-        println!("l_{i} = {}", l_j);
+        println!("l_{i} = {l_j}");
     }
 
     // PHASE 2: list schedule
@@ -231,7 +231,7 @@ fn w_j_l(allotment: usize, job: &Job) -> i32 {
 }
 
 fn compute_rho(_m: usize) -> f64 {
-    0.430991
+    0.430_991
 }
 // fn compute_my(m: usize) -> f64 {
 //     0.270875 * m as f64
@@ -239,7 +239,7 @@ fn compute_rho(_m: usize) -> f64 {
 
 fn critical_path_length(instance: &Instance) -> i32 {
     let mut scheduler = Scheduler::<i32>::new();
-    for job in instance.jobs.iter() {
+    for job in &instance.jobs {
         scheduler
             .add_task(CustomTask::new(
                 job.index.to_string(),
@@ -256,7 +256,7 @@ fn critical_path_length(instance: &Instance) -> i32 {
         Ok(()) => scheduler
             .get_critical_paths()
             .iter()
-            .map(|path| path.get_dur())
+            .map(cpm_rs::Path::get_dur)
             .max()
             .expect("empty graph"),
         Err(e) => panic!("{e}"),

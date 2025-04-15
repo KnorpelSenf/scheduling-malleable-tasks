@@ -7,24 +7,23 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         .expect("could not read job CSV");
     let headers = rdr.headers().expect("no headers in job file");
     let header_count = headers.len();
-    if header_count <= 1 {
-        panic!("too few columns!");
-    }
-    if headers.iter().next().is_none_or(|name| name != "id") {
-        panic!("first column is not id");
-    }
+    assert!((header_count > 1), "too few columns!");
+    assert!(
+        headers.iter().next().is_some_and(|name| name == "id"),
+        "first column is not id"
+    );
     let processor_count = header_count - 1;
     let jobs = rdr
         .records()
         .enumerate()
         .map(|(index, record)| {
             let row = index + 1;
-            let record = record.unwrap_or_else(|e| panic!("cannot parse record {row}: {:#?}", e));
+            let record = record.unwrap_or_else(|e| panic!("cannot parse record {row}: {e:#?}"));
             let id: i32 = record
                 .get(0)
                 .unwrap_or_else(|| panic!("missing id in row {row}"))
                 .parse()
-                .unwrap_or_else(|e| panic!("bad id in row {row}: {:#?}", e));
+                .unwrap_or_else(|e| panic!("bad id in row {row}: {e:#?}"));
             (
                 id,
                 Job {
@@ -35,7 +34,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
                         .skip(1)
                         .map(|(column, cell)| {
                             cell.parse().unwrap_or_else(|e| {
-                                panic!("bad processing time in cell at {row}:{column}: {:#?}", e)
+                                panic!("bad processing time in cell at {row}:{column}: {e:#?}")
                             })
                         })
                         .collect(),
@@ -58,20 +57,20 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
         .enumerate()
         .map(|(index, record)| {
             let row = index + 1;
-            let record = record.unwrap_or_else(|e| panic!("cannot parse record {row}: {:#?}", e));
+            let record = record.unwrap_or_else(|e| panic!("cannot parse record {row}: {e:#?}"));
             let left: i32 = record
                 .get(0)
                 .unwrap_or_else(|| panic!("missing left side of constraint in row {row}"))
                 .parse()
                 .unwrap_or_else(|e| {
-                    panic!("bad id in left side of constraint in row {row}: {:#?}", e)
+                    panic!("bad id in left side of constraint in row {row}: {e:#?}")
                 });
             let right: i32 = record
                 .get(1)
                 .unwrap_or_else(|| panic!("missing right side of constraint in row {row}"))
                 .parse()
                 .unwrap_or_else(|e| {
-                    panic!("bad id in right side of constraint in row {row}: {:#?}", e)
+                    panic!("bad id in right side of constraint in row {row}: {e:#?}")
                 });
 
             Constraint(
@@ -107,7 +106,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
 pub fn write(job_file: &str, constraint_file: &str, instance: Instance) {
     let mut wtr = Writer::from_path(job_file).expect("could not write job CSV");
     let headers = std::iter::once("id".to_string())
-        .chain((0..instance.processor_count).map(|i| format!("p{}", i)));
+        .chain((0..instance.processor_count).map(|i| format!("p{i}")));
     wtr.write_record(headers).expect("could not write headers");
     for job in instance.jobs {
         wtr.write_record(

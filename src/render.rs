@@ -40,14 +40,14 @@ pub fn render_schedule(schedule: Schedule) -> String {
                 .set("xmlns:svg", "http://www.w3.org/2000/svg")
                 .add(gradient)
                 .add(Style::new(
-                    r#"
+                    r"
     text { font-family:monospace; font-size:10px; fill:black; }
     #title { text-anchor:middle; font-size:25px; }
     .machine-header { text-anchor:middle; font-size:17px; }
     .machine-box { stroke-width:1; stroke:black; }
     .machine-label { text-anchor:middle; dominant-baseline:middle; font-size:15px; }
     .scale-label { text-anchor:end; dominant-baseline:middle; font-size:10px; }
-    "#,
+    ",
                 ))
                 // background
                 .add(
@@ -65,7 +65,7 @@ pub fn render_schedule(schedule: Schedule) -> String {
                         .set("x", "50%")
                         .set("y", 24),
                 ),
-            |doc, header| doc.add(header),
+            svg::node::element::SVG::add,
         );
 
     // Create the SVG document
@@ -114,16 +114,16 @@ fn add_jobs_to_doc(document: SVG, processor_count: usize, mut jobs: Vec<Schedule
                     "insufficient number of processors available"
                 );
                 let end = job.start_time + job.processing_time();
-                for proc in processors.iter() {
+                for proc in &processors {
                     used_until[*proc] = end;
                 }
-                (add_job_to_doc(doc, processors, y, job), used_until)
+                (add_job_to_doc(doc, processors, y, &job), used_until)
             },
         )
         .0
 }
 
-fn add_job_to_doc(document: SVG, processors: Vec<usize>, y: usize, job: ScheduledJob) -> SVG {
+fn add_job_to_doc(document: SVG, processors: Vec<usize>, y: usize, job: &ScheduledJob) -> SVG {
     assert_eq!(
         processors.len(),
         job.allotment,
@@ -202,7 +202,7 @@ fn create_time_scale(height_seconds: usize) -> Group {
                 0,
                 height_seconds * MACHINE_HEIGHT_SCALE,
             )),
-            |group, line| group.add(line),
+            svg::node::element::Group::add,
         )
 }
 

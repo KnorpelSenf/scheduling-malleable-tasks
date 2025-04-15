@@ -26,8 +26,8 @@ struct Cli {
 enum Commands {
     /// Solves a given instance of the scheduling problem using a dynamic program
     SolveDp {
-        /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
-        /// column p_i contains the processing time if the job were to be executed
+        /// Input CSV file containing jobs in the format `id,p_1,...,p_m` where each
+        /// column `p_i` contains the processing time if the job were to be executed
         /// on i machines.
         #[arg(short, long)]
         job_file: String,
@@ -48,8 +48,8 @@ enum Commands {
     },
     /// Solves a given instance of the scheduling problem using an integer linear program
     SolveIlp {
-        /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
-        /// column p_i contains the processing time if the job were to be executed
+        /// Input CSV file containing jobs in the format `id,p_1,...,p_m` where each
+        /// column `p_i` contains the processing time if the job were to be executed
         /// on i machines.
         #[arg(short, long)]
         job_file: String,
@@ -74,8 +74,8 @@ enum Commands {
     },
     /// Solves a given instance of the scheduling problem using a linear program
     SolveLp {
-        /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
-        /// column p_i contains the processing time if the job were to be executed
+        /// Input CSV file containing jobs in the format `id,p_1,...,p_m` where each
+        /// column `p_i` contains the processing time if the job were to be executed
         /// on i machines.
         #[arg(short, long)]
         job_file: String,
@@ -264,7 +264,7 @@ fn process_schedule(
         if open {
             println!("Opening file ...");
             if let Err(e) = open_that(&path) {
-                eprintln!("Could not open file {path}: {:#?}", e);
+                eprintln!("Could not open file {path}: {e:#?}");
             }
         }
     } else {
