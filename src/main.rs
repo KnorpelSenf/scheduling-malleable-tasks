@@ -11,6 +11,7 @@ mod dp;
 mod files;
 mod generate;
 mod ilp;
+mod ilp_var_rho;
 mod render;
 
 #[derive(Parser)]
@@ -23,7 +24,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Solves a given instance of the scheduling problem
+    /// Solves a given instance of the scheduling problem using a dynamic program
     SolveDp {
         /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
         /// column p_i contains the processing time if the job were to be executed
@@ -45,8 +46,30 @@ enum Commands {
         #[arg(long)]
         open: bool,
     },
-    /// Solves a given instance of the scheduling problem
+    /// Solves a given instance of the scheduling problem using a linear program
     SolveIlp {
+        /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
+        /// column p_i contains the processing time if the job were to be executed
+        /// on i machines.
+        #[arg(short, long)]
+        job_file: String,
+
+        /// Input CSV file containing constraints between jobs in the format
+        /// "id0,id1" where each line expresses that the job with id0 is less than
+        /// the job with id1.
+        #[arg(short, long)]
+        constraint_file: String,
+
+        /// Render the schedule to an SVG file in the directory "schedules"
+        #[arg(long)]
+        svg: bool,
+
+        /// Open the rendered SVG if created
+        #[arg(long)]
+        open: bool,
+    },
+    /// Solves a given instance of the scheduling problem using a linear prgram with a dynamic rounding parameter
+    SolveIlpVarRho {
         /// Input CSV file containing jobs in the format "id,p_1,...,p_m" where each
         /// column p_i contains the processing time if the job were to be executed
         /// on i machines.
@@ -129,6 +152,15 @@ fn main() {
             open,
         } => {
             let schedule = run_algo(ilp::schedule, job_file, constraint_file);
+            process_schedule(schedule, job_file, constraint_file, svg, open);
+        }
+        &Commands::SolveIlpVarRho {
+            ref job_file,
+            ref constraint_file,
+            svg,
+            open,
+        } => {
+            let schedule = run_algo(ilp_var_rho::schedule, job_file, constraint_file);
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
         &Commands::Generate {

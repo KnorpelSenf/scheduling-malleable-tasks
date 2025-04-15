@@ -10,6 +10,22 @@ pub struct Instance {
     /// The maximum number of seconds in the universe
     pub max_time: i32,
 }
+impl Instance {
+    pub fn predecessors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
+        self.jobs
+            .iter()
+            .enumerate()
+            .filter(|(_, j)| job.index != j.index && j.less_than(&self.constraints, job))
+            .collect()
+    }
+    pub fn successors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
+        self.jobs
+            .iter()
+            .enumerate()
+            .filter(|(_, j)| job.index != j.index && j.greater_than(&self.constraints, job))
+            .collect()
+    }
+}
 /// A job in a problem instance
 #[derive(Clone, Debug)]
 pub struct Job {
@@ -25,7 +41,24 @@ impl Job {
     pub fn processing_time(&self, allotment: usize) -> i32 {
         self.processing_times[allotment - 1]
     }
+    pub fn closest_allotment(&self, processing_time: i32) -> usize {
+        1 + self
+            .processing_times
+            .iter()
+            .copied()
+            .map(|x| processing_time.abs_diff(x))
+            .enumerate()
+            .min_by_key(|&(_, diff)| diff)
+            .expect("no processing times")
+            .0
+    }
 }
+impl PartialEq for Job {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
+    }
+}
+// impl Eq for Job {}
 /// Compares two values by their index
 #[derive(Debug)]
 pub struct Constraint(pub usize, pub usize);
