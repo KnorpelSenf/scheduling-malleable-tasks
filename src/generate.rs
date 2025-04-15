@@ -4,6 +4,7 @@ use rand::seq::SliceRandom;
 use rand::Rng;
 use std::cmp;
 
+#[expect(clippy::too_many_arguments)]
 pub fn instance(
     n: usize,
     m: usize,
@@ -55,10 +56,9 @@ fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Ve
     cuts.sort();
     cuts.ensure_slice_size(min_chain, max_chain);
 
-    vec![0]
-        .iter()
+    [0].iter()
         .chain(cuts.iter())
-        .chain(vec![n].iter())
+        .chain([n].iter())
         .tuple_windows()
         .fold(vec![], |constraints, (&l, &r)| {
             constraints

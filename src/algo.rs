@@ -66,24 +66,24 @@ pub struct Constraint(pub usize, pub usize);
 pub trait PartialRelation {
     /// Returns `true` if self is comparable to other, and `false` of the two
     /// values are incomparable
-    fn is_comparable(&self, relation: &Vec<Constraint>, other: &Self) -> bool {
+    fn is_comparable(&self, relation: &[Constraint], other: &Self) -> bool {
         self.compare(relation, other).is_some()
     }
     /// Returns `true` if self is in relation to other, and `false` otherwise
-    fn less_than(&self, relation: &Vec<Constraint>, other: &Self) -> bool {
+    fn less_than(&self, relation: &[Constraint], other: &Self) -> bool {
         self.compare(relation, other).is_some_and(|less| less)
     }
     // /// Returns `true` if other is in relation to self, and `false` otherwise
-    fn greater_than(&self, relation: &Vec<Constraint>, other: &Self) -> bool {
+    fn greater_than(&self, relation: &[Constraint], other: &Self) -> bool {
         self.compare(relation, other).is_some_and(|less| !less)
     }
     /// Returns `None` if self and other are incomparable. Returns `Some(true)`
     /// if self is less than other and returns `Some(false)` if other is less
     /// than self.
-    fn compare(&self, relation: &Vec<Constraint>, other: &Self) -> Option<bool>;
+    fn compare(&self, relation: &[Constraint], other: &Self) -> Option<bool>;
 }
 impl PartialRelation for Job {
-    fn compare(&self, relation: &Vec<Constraint>, other: &Self) -> Option<bool> {
+    fn compare(&self, relation: &[Constraint], other: &Self) -> Option<bool> {
         relation.iter().find_map(|&Constraint(left, right)| {
             if self.index == left && other.index == right {
                 Some(true)

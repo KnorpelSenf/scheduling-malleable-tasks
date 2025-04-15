@@ -160,8 +160,8 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
             .expect("bad start time")
             .0;
         let done = job.completion_time();
-        for i in machine..machine + allotment {
-            occupation[i] = done;
+        for occ in occupation.iter_mut().skip(machine).take(allotment) {
+            *occ = done;
         }
         scheduled_jobs.push(job);
     }

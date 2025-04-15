@@ -143,8 +143,8 @@ enum Commands {
 }
 
 fn main() {
-    match &Cli::parse().command {
-        &Commands::SolveDp {
+    match Cli::parse().command {
+        Commands::SolveDp {
             ref job_file,
             ref constraint_file,
             svg,
@@ -158,7 +158,7 @@ fn main() {
             );
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
-        &Commands::SolveIlp {
+        Commands::SolveIlp {
             ref job_file,
             ref constraint_file,
             svg,
@@ -168,7 +168,7 @@ fn main() {
             let schedule = run_algo(ilp::schedule, job_file, constraint_file, compress);
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
-        &Commands::SolveLp {
+        Commands::SolveLp {
             ref job_file,
             ref constraint_file,
             svg,
@@ -178,7 +178,7 @@ fn main() {
             let schedule = run_algo(lp::schedule, job_file, constraint_file, compress);
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
-        &Commands::Generate {
+        Commands::Generate {
             n,
             m,
             min: min_p,
@@ -194,19 +194,19 @@ fn main() {
             assert!(min_p >= 1, "min_p must be at least 1");
             assert!(max_p >= min_p, "max_p must be at least min_p");
             assert!(omega >= 1, "omega must be at least 1");
-            assert!(omega <= n as usize, "omega must be at most n");
+            assert!(omega <= n, "omega must be at most n");
             assert!(min_chain >= 1, "min_chain must be at least 1");
             assert!(
                 max_chain >= min_chain,
                 "max_chain must be at least min_chain"
             );
-            assert!(max_chain <= n as usize, "max_chain must be at most n");
+            assert!(max_chain <= n, "max_chain must be at most n");
             assert!(
-                min_chain * omega <= n as usize,
+                min_chain * omega <= n,
                 "min_chain * omega must be at at most n"
             );
             assert!(
-                max_chain * omega >= n as usize,
+                max_chain * omega >= n,
                 "max_chain * omega must be at at least n"
             );
 

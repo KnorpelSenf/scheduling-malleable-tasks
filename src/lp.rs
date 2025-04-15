@@ -202,8 +202,8 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
             .expect("bad start time")
             .0;
         let done = job.completion_time();
-        for i in machine..machine + allotment {
-            occupation[i] = done;
+        for occ in occupation.iter_mut().skip(machine).take(allotment) {
+            *occ = done;
         }
         scheduled_jobs.push(job);
     }
@@ -213,17 +213,12 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     }
 }
 
-fn w_hat_j(m: usize, virtual_processing_times: &Vec<Variable>, job: &Job) -> Expression {
+fn w_hat_j(m: usize, virtual_processing_times: &[Variable], job: &Job) -> Expression {
     (1..=m)
         .map(|i| w_bar_j_i(m, i, virtual_processing_times, job))
         .sum::<Expression>()
 }
-fn w_bar_j_i(
-    m: usize,
-    i: usize,
-    virtual_processing_times: &Vec<Variable>,
-    job: &Job,
-) -> Expression {
+fn w_bar_j_i(m: usize, i: usize, virtual_processing_times: &[Variable], job: &Job) -> Expression {
     if i == m {
         0.into()
     } else {

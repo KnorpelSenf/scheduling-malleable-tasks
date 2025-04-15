@@ -119,7 +119,7 @@ pub fn write(job_file: &str, constraint_file: &str, instance: Instance) {
     wtr.flush().expect("could not flush job CSV");
 
     let mut wtr = Writer::from_path(constraint_file).expect("could not write constraint CSV");
-    wtr.write_record(&["id0", "id1"])
+    wtr.write_record(["id0", "id1"])
         .expect("could not write headers");
     for Constraint(l, r) in instance.constraints {
         wtr.write_record(std::iter::once(l.to_string()).chain(std::iter::once(r.to_string())))
