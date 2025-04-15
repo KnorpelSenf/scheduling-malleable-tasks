@@ -5,9 +5,10 @@ use good_lp::{
 
 use crate::algo::{Instance, Job, Schedule, ScheduledJob};
 
-pub fn schedule(instance: Instance) -> Schedule {
+pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     // initialization step
-    let m = instance.jobs.len();
+    let m = instance.processor_count;
+    let rho = compute_rho(m);
 
     // PHASE 1: linear program
     // - define linear program
@@ -105,31 +106,40 @@ pub fn schedule(instance: Instance) -> Schedule {
     let solution = problem
         .solve()
         .unwrap_or_else(|e| panic!("no solution: {e}"));
-    let processing_times = processing_times
-        .into_iter()
-        .map(|v| solution.value(v).round() as i32)
-        .collect::<Vec<_>>();
+
+    println!("Believe makespan to be {}", solution.value(makespan));
+
     let completion_times = completion_times
         .into_iter()
         .map(|v| solution.value(v).round() as i32)
         .collect::<Vec<_>>();
 
-    for (i, x_j) in processing_times.iter().copied().enumerate() {
-        // print solution
-        println!("x_{i} = {}", x_j);
-    }
     for (i, c_j) in completion_times.iter().copied().enumerate() {
         println!("C_{i} = {}", c_j);
     }
-    // - round it to a feasible allotment
-    // - compute allotment parameter µ
-    let my = compute_my(m).floor() as usize;
-    let allotments = processing_times
-        .iter()
-        .copied()
-        .zip(instance.jobs.iter())
-        .map(|(x_j, job)| job.closest_allotment(x_j).min(my))
+
+    let allotments = virtual_processing_times
+        .into_iter()
+        .enumerate()
+        .map(|(j, vec)| {
+            vec.into_iter()
+                .zip(1..=m)
+                .map(|(var, i)| {
+                    let val = solution.value(var);
+                    println!("x_{j}_{i} = {val}");
+                    let p_j_i = instance.jobs[j].processing_time(i);
+                    if val < p_j_i as f64 * rho {
+                        (i, 0)
+                    } else {
+                        (i, p_j_i)
+                    }
+                })
+                .max_by_key(|&(_, p)| p)
+                .map(|(i, _)| i)
+                .unwrap_or(0)
+        })
         .collect::<Vec<_>>();
+
     for (i, l_j) in allotments.iter().copied().enumerate() {
         println!("l_{i} = {}", l_j);
     }
@@ -156,8 +166,11 @@ pub fn schedule(instance: Instance) -> Schedule {
             })
             .map(|(job, scheduled_predecessors)| {
                 let allotment = allotments[job];
-                let starting_time =
-                    completion_times[job] - instance.jobs[job].processing_time(allotment);
+                let starting_time = if compress {
+                    0
+                } else {
+                    completion_times[job] - instance.jobs[job].processing_time(allotment)
+                };
 
                 let predecessors_finished_at = scheduled_predecessors
                     .iter()
@@ -201,7 +214,7 @@ pub fn schedule(instance: Instance) -> Schedule {
 }
 
 fn w_hat_j(m: usize, virtual_processing_times: &Vec<Variable>, job: &Job) -> Expression {
-    (0..m)
+    (1..=m)
         .map(|i| w_bar_j_i(m, i, virtual_processing_times, job))
         .sum::<Expression>()
 }
@@ -225,9 +238,9 @@ fn w_j_l(allotment: usize, job: &Job) -> i32 {
 fn compute_rho(_m: usize) -> f64 {
     0.430991
 }
-fn compute_my(m: usize) -> f64 {
-    0.270875 * m as f64
-}
+// fn compute_my(m: usize) -> f64 {
+//     0.270875 * m as f64
+// }
 
 fn critical_path_length(instance: &Instance) -> i32 {
     let mut scheduler = Scheduler::<i32>::new();

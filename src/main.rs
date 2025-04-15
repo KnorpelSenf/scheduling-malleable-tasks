@@ -67,6 +67,10 @@ enum Commands {
         /// Open the rendered SVG if created
         #[arg(long)]
         open: bool,
+
+        /// Remove idle times from schedule in a postprocessing step
+        #[arg(long)]
+        compress: bool,
     },
     /// Solves a given instance of the scheduling problem using a linear program
     SolveLp {
@@ -89,6 +93,10 @@ enum Commands {
         /// Open the rendered SVG if created
         #[arg(long)]
         open: bool,
+
+        /// Remove idle times from schedule in a postprocessing step
+        #[arg(long)]
+        compress: bool,
     },
     /// Generates a random instance of the scheduling problem
     Generate {
@@ -142,7 +150,12 @@ fn main() {
             svg,
             open,
         } => {
-            let schedule = run_algo(dp::schedule, job_file, constraint_file);
+            let schedule = run_algo(
+                |inst, _| dp::schedule(inst),
+                job_file,
+                constraint_file,
+                false,
+            );
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
         &Commands::SolveIlp {
@@ -150,8 +163,9 @@ fn main() {
             ref constraint_file,
             svg,
             open,
+            compress,
         } => {
-            let schedule = run_algo(ilp::schedule, job_file, constraint_file);
+            let schedule = run_algo(ilp::schedule, job_file, constraint_file, compress);
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
         &Commands::SolveLp {
@@ -159,8 +173,9 @@ fn main() {
             ref constraint_file,
             svg,
             open,
+            compress,
         } => {
-            let schedule = run_algo(lp::schedule, job_file, constraint_file);
+            let schedule = run_algo(lp::schedule, job_file, constraint_file, compress);
             process_schedule(schedule, job_file, constraint_file, svg, open);
         }
         &Commands::Generate {
@@ -202,15 +217,16 @@ fn main() {
     }
 }
 
-fn run_algo<T: FnOnce(Instance) -> Schedule>(
+fn run_algo<T: FnOnce(Instance, bool) -> Schedule>(
     algo: T,
     job_file: &str,
     constraint_file: &str,
+    compress: bool,
 ) -> Schedule {
     let instance = files::read(job_file, constraint_file);
 
     let before = Instant::now();
-    let schedule = algo(instance);
+    let schedule = algo(instance, compress);
     let duration = before.elapsed();
     println!(
         "Needed {:?} to schedule {} jobs on {} processors for {} seconds",

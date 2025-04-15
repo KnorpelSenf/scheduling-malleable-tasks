@@ -3,7 +3,7 @@ use good_lp::{constraint, default_solver, variable, variables, Expression, Solut
 
 use crate::algo::{Instance, Schedule, ScheduledJob};
 
-pub fn schedule(instance: Instance) -> Schedule {
+pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     // initialization step
     let m = instance.jobs.len() as i32;
 
@@ -124,8 +124,11 @@ pub fn schedule(instance: Instance) -> Schedule {
             })
             .map(|(job, scheduled_predecessors)| {
                 let allotment = allotments[job];
-                let starting_time =
-                    completion_times[job] - instance.jobs[job].processing_time(allotment);
+                let starting_time = if compress {
+                    0
+                } else {
+                    completion_times[job] - instance.jobs[job].processing_time(allotment)
+                };
 
                 let predecessors_finished_at = scheduled_predecessors
                     .iter()
