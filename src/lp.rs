@@ -230,6 +230,10 @@ fn w_j_l(allotment: usize, job: &Job) -> i32 {
     allotment as i32 * job.processing_time(allotment)
 }
 
+#[expect(
+    clippy::missing_const_for_fn,
+    reason = "might implement complex logic from paper here"
+)]
 fn compute_rho(_m: usize) -> f64 {
     0.430_991
 }

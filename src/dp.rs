@@ -14,7 +14,7 @@ struct State {
 }
 impl State {
     fn empty(omega: usize) -> Self {
-        State {
+        Self {
             ideal: vec![0; omega],
             allotment: vec![0; omega],
             completion_times: vec![0; omega],
@@ -33,7 +33,7 @@ impl State {
         ideal[chain] += 1;
         allotment[chain] = allot;
         completion_times[chain] = compl;
-        State {
+        Self {
             ideal,
             allotment,
             completion_times,
