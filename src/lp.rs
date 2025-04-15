@@ -1,72 +1,105 @@
 use cpm_rs::{CustomTask, Scheduler};
-use good_lp::{constraint, default_solver, variable, variables, Expression, Solution, SolverModel};
+use good_lp::{
+    constraint, default_solver, variable, variables, Expression, Solution, SolverModel, Variable,
+};
 
-use crate::algo::{Instance, Schedule, ScheduledJob};
+use crate::algo::{Instance, Job, Schedule, ScheduledJob};
 
 pub fn schedule(instance: Instance) -> Schedule {
     // initialization step
-    let m = instance.jobs.len() as i32;
+    let m = instance.jobs.len();
 
     // PHASE 1: linear program
     // - define linear program
     let cpl = critical_path_length(&instance);
-    let mut vars = variables!();
-    let makespan = vars.add(variable().min(0));
-    let processing_times = instance
+    let total_processing_time = instance
         .jobs
         .iter()
-        .map(|job| {
-            vars.add(variable().clamp(
-                job.processing_time(instance.processor_count),
-                job.processing_time(1),
-            ))
-        })
-        .collect::<Vec<_>>();
+        .map(|job| job.processing_time(1))
+        .sum::<i32>();
+    let mut vars = variables!();
+    let makespan = vars.add(variable().min(0));
+    let total_work = vars.add(variable().min(0));
     let completion_times = instance
         .jobs
         .iter()
         .map(|_| vars.add(variable().clamp(0, cpl)))
         .collect::<Vec<_>>();
-    let work = instance
+    let processing_times = instance
         .jobs
         .iter()
-        .map(|_| vars.add(variable()))
+        .map(|job| vars.add(variable().clamp(0, job.processing_time(1))))
         .collect::<Vec<_>>();
-    // minimize makespan
+    let virtual_processing_times = instance
+        .jobs
+        .iter()
+        .map(|_| {
+            (0..m)
+                .map(|_| vars.add(variable().min(0)))
+                .collect::<Vec<_>>()
+        })
+        .collect::<Vec<_>>();
+
     let problem = vars.minimise(makespan).using(default_solver);
-    // set the makespan as the maximum completion time
-    let problem = completion_times.iter().fold(problem, |prob, &c_j| {
-        prob.with(constraint!(makespan >= c_j))
-    });
-    // ensure the order of jobs
+
     let problem = instance
         .jobs
         .iter()
         .enumerate()
-        .fold(problem, |prob, (i, job)| {
+        .fold(problem, |prob, (j, job)| {
             instance
-                .predecessors(job)
+                .successors(job)
                 .into_iter()
-                .fold(prob, |p, (j, _)| {
+                .fold(prob, |p, (k, _)| {
                     p.with(constraint!(
-                        completion_times[i] + processing_times[j] <= completion_times[j]
+                        completion_times[j] + processing_times[k] <= completion_times[k]
                     ))
                 })
         });
-    // (9)
-    let problem = (1..=instance.processor_count - 1).fold(problem, |prob, l| {
-        (0..m as usize).fold(prob, |p, j| {
-            let job = &instance.jobs[j];
-            let p_j_l = job.processing_time(l);
-            let p_j_lp1 = job.processing_time(l + 1);
-            let l = l as i32;
-            let lp1 = l + 1;
-            let r = (lp1 * p_j_lp1 - l * p_j_l) / (p_j_lp1 - p_j_l);
-            let s = (p_j_l * p_j_lp1) / (p_j_lp1 - p_j_l);
-            p.with(constraint!(r * processing_times[j] - s <= work[j]))
-        })
-    });
-    let problem = problem.with(constraint!(work.iter().sum::<Expression>() / m <= makespan));
+    let problem = instance
+        .jobs
+        .iter()
+        .enumerate()
+        .fold(problem, |prob, (j, _)| {
+            (0..m).fold(prob, |p, i| {
+                p.with(constraint!(
+                    virtual_processing_times[j][i] <= processing_times[j]
+                ))
+            })
+        });
+    let problem = instance
+        .jobs
+        .iter()
+        .enumerate()
+        .fold(problem, |prob, (j, job)| {
+            (1..m).fold(prob, |p, i| {
+                p.with(constraint!(
+                    virtual_processing_times[j][i] <= job.processing_time(i)
+                ))
+            })
+        });
+    let problem = instance
+        .jobs
+        .iter()
+        .enumerate()
+        .fold(problem, |prob, (j, job)| {
+            prob.with(constraint!(
+                virtual_processing_times[j][m - 1] == job.processing_time(m)
+            ))
+        });
+    let problem = problem
+        .with(constraint!(
+            instance
+                .jobs
+                .iter()
+                .enumerate()
+                .map(|(j, job)| w_hat_j(m, &virtual_processing_times[j], job))
+                .sum::<Expression>()
+                + total_processing_time
+                <= total_work
+        ))
+        .with(constraint!(cpl <= makespan))
+        .with(constraint!(total_work / (m as i32) <= makespan));
 
     // - obtain fractional solution
     let solution = problem
@@ -102,7 +135,6 @@ pub fn schedule(instance: Instance) -> Schedule {
     }
 
     // PHASE 2: list schedule
-
     // - run LIST to generate feasible schedule
     let mut jobs = (0..instance.jobs.len())
         .map(|i| (i, true))
@@ -168,10 +200,35 @@ pub fn schedule(instance: Instance) -> Schedule {
     }
 }
 
-fn compute_my(m: i32) -> f64 {
-    let m = m as f64;
-    0.01 * (113.0 * m - ((6469.0 * m * m) - 6300.0 * m).sqrt())
+fn w_hat_j(m: usize, virtual_processing_times: &Vec<Variable>, job: &Job) -> Expression {
+    (0..m)
+        .map(|i| w_bar_j_i(m, i, virtual_processing_times, job))
+        .sum::<Expression>()
 }
+fn w_bar_j_i(
+    m: usize,
+    i: usize,
+    virtual_processing_times: &Vec<Variable>,
+    job: &Job,
+) -> Expression {
+    if i == m {
+        0.into()
+    } else {
+        (w_j_l(i + 1, job) - w_j_l(i, job)) * (job.processing_time(i) - virtual_processing_times[i])
+            / job.processing_time(i)
+    }
+}
+fn w_j_l(allotment: usize, job: &Job) -> i32 {
+    allotment as i32 * job.processing_time(allotment)
+}
+
+fn compute_rho(_m: usize) -> f64 {
+    0.430991
+}
+fn compute_my(m: usize) -> f64 {
+    0.270875 * m as f64
+}
+
 fn critical_path_length(instance: &Instance) -> i32 {
     let mut scheduler = Scheduler::<i32>::new();
     for job in instance.jobs.iter() {
