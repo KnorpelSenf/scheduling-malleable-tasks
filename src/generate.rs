@@ -23,7 +23,7 @@ pub fn instance(
             jobs(n, m, min_p, max_p)
         },
         constraints: constraints(n, omega, min_chain, max_chain),
-        max_time: n as i32 * max_p
+        max_time: n as i32 * max_p,
     }
 }
 
@@ -34,9 +34,7 @@ fn jobs_concave(n: usize, m: i32, min_p: i32, max_p: i32) -> Vec<Job> {
             let cutoff = rand::rng().random_range(1..=m);
             Job {
                 index,
-                processing_times: (1..=m)
-                    .map(|i| p / cmp::min(i, cutoff) )
-                    .collect(),
+                processing_times: (1..=m).map(|i| p / cmp::min(i, cutoff)).collect(),
             }
         })
         .collect()
@@ -75,7 +73,7 @@ fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Ve
                         .flat_map(|job0| (job0..r).map(move |job1| (job0, job1)))
                         .map(|(left, right)| Constraint(left, right)),
                 )
-                .collect::<Vec<_>>()
+                .collect()
         })
 }
 
@@ -86,7 +84,11 @@ trait SlicesWithSize {
 
 impl<E> SlicesWithSize for Vec<E>
 where
-    E: Copy + PartialOrd + std::ops::Add<Output = E> + std::ops::Sub<Output = E>,
+    E: Copy
+        + Ord
+        + std::ops::Add<Output = E>
+        + std::ops::Sub<Output = E>
+        + std::ops::Mul<usize, Output = E>,
 {
     type T = E;
     fn ensure_slice_size(&mut self, min: E, max: E) {
@@ -94,12 +96,21 @@ where
         // if not, increase or decrease the second value to fit the bounds
 
         for i in 0..self.len() - 1 {
+            let max_remaining = cmp::max(max, min * (self.len() - i));
             let diff = self[i + 1] - self[i];
             if diff < min {
                 self[i + 1] = self[i] + min;
-            } else if diff > max {
-                self[i + 1] = self[i] + max;
+            } else if diff > max_remaining {
+                self[i + 1] = self[i] + max_remaining;
             }
         }
+
+        // just make sure we did not mess up
+        let last = self.len() - 1;
+        let diff = self[last] - self[last - 1];
+        assert!(
+            min <= diff && diff <= max,
+            "unfortunate random values, cannot handle"
+        );
     }
 }
