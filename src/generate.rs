@@ -8,8 +8,8 @@ use std::cmp;
 pub fn instance(
     n: usize,
     m: usize,
-    min_p: usize,
-    max_p: usize,
+    min_p: i32,
+    max_p: i32,
     omega: usize,
     min_chain: usize,
     max_chain: usize,
@@ -17,36 +17,43 @@ pub fn instance(
 ) -> Instance {
     Instance {
         processor_count: m,
-        jobs: jobs(n, m, min_p, max_p, concave),
+        jobs: if concave {
+            jobs_concave(n, m as i32, min_p, max_p)
+        } else {
+            jobs(n, m, min_p, max_p)
+        },
         constraints: constraints(n, omega, min_chain, max_chain),
-        max_time: (n * max_p) as i32,
+        max_time: n as i32 * max_p
     }
 }
 
-fn jobs(n: usize, m: usize, min_p: usize, max_p: usize, concave: bool) -> Vec<Job> {
-    if concave {
-        return (0..n)
-            .map(|index| {
-                let p = rand::rng().random_range(min_p..max_p) as f64;
-                let cutoff = rand::rng().random_range(0..m);
-                Job {
-                    index,
-                    processing_times: (0..m)
-                        .map(|i| (p / cmp::min(i, cutoff) as f64 + 1.0) as i32)
-                        .collect(),
-                }
-            })
-            .collect();
-    }
+fn jobs_concave(n: usize, m: i32, min_p: i32, max_p: i32) -> Vec<Job> {
+    (0..n)
+        .map(|index| {
+            let p = rand::rng().random_range(min_p..max_p);
+            let cutoff = rand::rng().random_range(1..=m);
+            Job {
+                index,
+                processing_times: (1..=m)
+                    .map(|i| p / cmp::min(i, cutoff) )
+                    .collect(),
+            }
+        })
+        .collect()
+}
+
+fn jobs(n: usize, m: usize, min_p: i32, max_p: i32) -> Vec<Job> {
     (0..n)
         .map(|index| Job {
             index,
-            processing_times: (0..m)
-                .map(|_| rand::rng().random_range(min_p..max_p) as i32)
+            processing_times: (1..=m)
+                .map(|_| rand::rng().random_range(min_p..max_p))
                 .collect(),
         })
         .collect()
 }
+
+// ----- ^ everything alright above this line
 
 fn constraints(n: usize, omega: usize, min_chain: usize, max_chain: usize) -> Vec<Constraint> {
     let mut indices = (1..n).collect::<Vec<_>>();

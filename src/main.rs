@@ -110,11 +110,11 @@ enum Commands {
 
         /// Maximum processing time for each job
         #[arg(long)]
-        min: usize,
+        min: i32,
 
         /// Maximum processing time for each job
         #[arg(long)]
-        max: usize,
+        max: i32,
 
         /// Output CSV file containing the jobs
         #[arg(short, long)]
