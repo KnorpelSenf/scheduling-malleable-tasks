@@ -1,4 +1,4 @@
-use log::trace;
+use log::debug;
 
 use cpm_rs::{CustomTask, Scheduler};
 use good_lp::{constraint, default_solver, variable, variables, Expression, Solution, SolverModel};
@@ -90,10 +90,10 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
 
     for (i, x_j) in processing_times.iter().copied().enumerate() {
         // print solution
-        trace!("x_{i} = {x_j}");
+        debug!("x_{i} = {x_j}");
     }
     for (i, c_j) in completion_times.iter().copied().enumerate() {
-        trace!("C_{i} = {c_j}");
+        debug!("C_{i} = {c_j}");
     }
     // - round it to a feasible allotment
     // - compute allotment parameter µ
@@ -105,7 +105,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
         .map(|(x_j, job)| job.closest_allotment(x_j).min(my))
         .collect::<Vec<_>>();
     for (i, l_j) in allotments.iter().copied().enumerate() {
-        trace!("l_{i} = {l_j}");
+        debug!("l_{i} = {l_j}");
     }
 
     // PHASE 2: list schedule

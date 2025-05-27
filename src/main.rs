@@ -1,5 +1,5 @@
 use env_logger::{Builder, Target::Stdout};
-use log::{debug, error};
+use log::{error, info};
 
 use std::{fs, io::Write, path, time::Instant};
 
@@ -233,17 +233,25 @@ fn run_algo<T: FnOnce(Instance, bool) -> Schedule>(
     let before = Instant::now();
     let schedule = algo(instance, compress);
     let duration = before.elapsed();
-    debug!(
+    let length = schedule
+        .jobs
+        .iter()
+        .map(|job| job.start_time + job.processing_time())
+        .max()
+        .unwrap_or(0);
+    info!(
         "Needed {:?} to schedule {} jobs on {} processors for {} seconds",
         duration,
         schedule.jobs.len(),
         schedule.processor_count,
-        schedule
-            .jobs
-            .iter()
-            .map(|job| job.start_time + job.processing_time())
-            .max()
-            .unwrap_or(0)
+        length
+    );
+    println!(
+        "{},{},{},{}",
+        duration.as_millis(),
+        schedule.jobs.len(),
+        schedule.processor_count,
+        length
     );
     schedule
 }
@@ -264,20 +272,20 @@ fn process_schedule(
             .unwrap_or_else(|e| panic!("cannot create file {path}: {e}"));
         file.write_all(rendered.as_bytes())
             .unwrap_or_else(|e| panic!("cannot write to file {path}: {e}"));
-        debug!("Result is written to {path}");
+        info!("Result is written to {path}");
 
         if open {
-            debug!("Opening file ...");
+            info!("Opening file ...");
             if let Err(e) = open_that(&path) {
                 error!("Could not open file {path}: {e:#?}");
             }
         }
     } else {
-        debug!("");
+        info!("");
         if open {
-            debug!("  hint: Ignored --open because no schedule file was written");
+            info!("  hint: Ignored --open because no schedule file was written");
         }
-        debug!("  hint: Specify --svg to write a schedule file");
+        info!("  hint: Specify --svg to write a schedule file");
     }
 }
 

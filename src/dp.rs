@@ -1,4 +1,4 @@
-use log::trace;
+use log::debug;
 
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
@@ -55,7 +55,7 @@ pub fn schedule(instance: Instance) -> Schedule {
     let initial_state = State::empty(omega);
     let jobs =
         search(&instance, &chains, &initial_state, &mut HashSet::new()).expect("no solution found");
-    trace!("jobs are {jobs:#?}");
+    debug!("jobs are {jobs:#?}");
     Schedule {
         processor_count: instance.processor_count,
         jobs,
