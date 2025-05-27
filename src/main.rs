@@ -1,3 +1,6 @@
+use env_logger::{Builder, Target::Stdout};
+use log::{debug, error};
+
 use std::{fs, io::Write, path, time::Instant};
 
 use algo::{Instance, Schedule, ScheduledJob};
@@ -143,6 +146,8 @@ enum Commands {
 }
 
 fn main() {
+    Builder::from_default_env().target(Stdout).init();
+
     match Cli::parse().command {
         Commands::SolveDp {
             ref job_file,
@@ -228,7 +233,7 @@ fn run_algo<T: FnOnce(Instance, bool) -> Schedule>(
     let before = Instant::now();
     let schedule = algo(instance, compress);
     let duration = before.elapsed();
-    println!(
+    debug!(
         "Needed {:?} to schedule {} jobs on {} processors for {} seconds",
         duration,
         schedule.jobs.len(),
@@ -259,20 +264,20 @@ fn process_schedule(
             .unwrap_or_else(|e| panic!("cannot create file {path}: {e}"));
         file.write_all(rendered.as_bytes())
             .unwrap_or_else(|e| panic!("cannot write to file {path}: {e}"));
-        println!("Result is written to {path}");
+        debug!("Result is written to {path}");
 
         if open {
-            println!("Opening file ...");
+            debug!("Opening file ...");
             if let Err(e) = open_that(&path) {
-                eprintln!("Could not open file {path}: {e:#?}");
+                error!("Could not open file {path}: {e:#?}");
             }
         }
     } else {
-        println!();
+        debug!("");
         if open {
-            println!("  hint: Ignored --open because no schedule file was written");
+            debug!("  hint: Ignored --open because no schedule file was written");
         }
-        println!("  hint: Specify --svg to write a schedule file");
+        debug!("  hint: Specify --svg to write a schedule file");
     }
 }
 

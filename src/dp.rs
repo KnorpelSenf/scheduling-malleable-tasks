@@ -1,3 +1,5 @@
+use log::trace;
+
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
 
 use crate::algo::{Instance, PartialRelation, Schedule, ScheduledJob};
@@ -53,7 +55,7 @@ pub fn schedule(instance: Instance) -> Schedule {
     let initial_state = State::empty(omega);
     let jobs =
         search(&instance, &chains, &initial_state, &mut HashSet::new()).expect("no solution found");
-    println!("jobs are {jobs:#?}");
+    trace!("jobs are {jobs:#?}");
     Schedule {
         processor_count: instance.processor_count,
         jobs,

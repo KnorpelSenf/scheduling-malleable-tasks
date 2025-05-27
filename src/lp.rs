@@ -1,3 +1,5 @@
+use log::trace;
+
 use cpm_rs::{CustomTask, Scheduler};
 use good_lp::{
     constraint, default_solver, variable, variables, Expression, Solution, SolverModel, Variable,
@@ -108,7 +110,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
         .solve()
         .unwrap_or_else(|e| panic!("no solution: {e}"));
 
-    println!("Believe makespan to be {}", solution.value(makespan));
+    trace!("Believe makespan to be {}", solution.value(makespan));
 
     let completion_times = completion_times
         .into_iter()
@@ -116,7 +118,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
         .collect::<Vec<_>>();
 
     for (i, c_j) in completion_times.iter().copied().enumerate() {
-        println!("C_{i} = {c_j}");
+        trace!("C_{i} = {c_j}");
     }
 
     let allotments = virtual_processing_times
@@ -127,7 +129,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
                 .zip(1..=m)
                 .map(|(var, i)| {
                     let val = solution.value(var);
-                    println!("x_{j}_{i} = {val}");
+                    trace!("x_{j}_{i} = {val}");
                     let p_j_i = instance.jobs[j].processing_time(i);
                     if val < f64::from(p_j_i) * rho {
                         (i, 0)
@@ -141,7 +143,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
         .collect::<Vec<_>>();
 
     for (i, l_j) in allotments.iter().copied().enumerate() {
-        println!("l_{i} = {l_j}");
+        trace!("l_{i} = {l_j}");
     }
 
     // PHASE 2: list schedule
