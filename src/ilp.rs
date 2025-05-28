@@ -68,8 +68,13 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
             let p_j_lp1 = job.processing_time(l + 1);
             let l = l as i32;
             let lp1 = l + 1;
-            let r = (lp1 * p_j_lp1 - l * p_j_l) / (p_j_lp1 - p_j_l);
-            let s = (p_j_l * p_j_lp1) / (p_j_lp1 - p_j_l);
+            let (r, s) = if p_j_l == p_j_lp1 {
+                (0, 0)
+            } else {
+                let r = (lp1 * p_j_lp1 - l * p_j_l) / (p_j_lp1 - p_j_l);
+                let s = (p_j_l * p_j_lp1) / (p_j_lp1 - p_j_l);
+                (r, s)
+            };
             p.with(constraint!(r * processing_times[j] - s <= work[j]))
         })
     });
