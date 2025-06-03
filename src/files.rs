@@ -89,7 +89,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
                     .index,
             )
         })
-        .take_while(|Constraint(l, r)| n <= *l && n <= *r)
+        .take_while(|Constraint(l, r)| *l < n && *r < n)
         .collect();
 
     let max_time = jobs.len() as i32
