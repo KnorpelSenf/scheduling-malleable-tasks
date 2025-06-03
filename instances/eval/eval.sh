@@ -4,36 +4,45 @@ set -ex
 
 cd "$(dirname "$0")"
 
-JOB_FILE=./jobs.csv
-CONSTRAINT_FILE=./constraints.csv
-
-# m
-# min
-# max
 # omega
 # min-chain
 # max-chain
 
-echo "ms,n,m,makespan" | tee eval-{ilp,lp,dp}.csv
-for n in `seq 10 5 5000`
-do 
-    cargo run -rq -- generate -j $JOB_FILE -c $CONSTRAINT_FILE -n $n -m 4 --min 1 --max 10 -o 8 --min-chain 1 --max-chain $n --concave
-    ILP_OUTPUT=$(timeout 15 cargo run -rq -- solve-ilp -j $JOB_FILE -c $CONSTRAINT_FILE 2&>/dev/null)
-    if [ $? == 124 ] 
-    then
-        break
-    fi
-    LP_OUTPUT=$(timeout 15 cargo run -rq -- solve-lp  -j $JOB_FILE -c $CONSTRAINT_FILE)
-    if [ $? == 124 ] 
-    then
-        break
-    fi
-    DP_OUTPUT=$(timeout 15 cargo run -rq -- solve-dp  -j $JOB_FILE -c $CONSTRAINT_FILE)
-    if [ $? == 124 ] 
-    then
-        break
-    fi
-    echo $ILP_OUTPUT >> eval-ilp.csv
-    echo $LP_OUTPUT  >> eval-lp.csv
-    echo $DP_OUTPUT  >> eval-dp.csv
+for m in `seq 2 2 32`
+do
+    for max in {2,3,4,5,10,20,50,100}
+    do
+        ILP_FILE=result-ilp-m${m}-max${max}.csv
+        LP_FILE=result-lp-m${m}-max${max}.csv
+        DP_FILE=result-dp-m${m}-max${max}.csv
+        for n in `seq 10 5 5000`
+        do 
+            cargo run -rq -- generate -j jobs-${n}.csv -c constraints-${n}.csv -n $n -m $m --min 1 --max $max -o 8 --min-chain 1 --max-chain $n --concave
+        done
+        echo "ms,n,m,makespan" | tee $ILP_FILE $LP_FILE $DP_FILE
+        for n in `seq 10 5 5000`
+        do 
+            timeout 15 cargo run -rq -- solve-ilp -j jobs-${n}.csv -c constraints-${n}.csv >> $ILP_FILE
+            if [ $? == 124 ] 
+            then
+                break
+            fi
+        done
+        for n in `seq 10 5 5000`
+        do 
+            timeout 15 cargo run -rq -- solve-lp  -j jobs-${n}.csv -c constraints-${n}.csv >> $LP_FILE
+            if [ $? == 124 ] 
+            then
+                break
+            fi
+        done
+        for n in `seq 10 5 5000`
+        do 
+            timeout 15 cargo run -rq -- solve-dp  -j jobs-${n}.csv -c constraints-${n}.csv >> $DP_FILE
+            if [ $? == 124 ] 
+            then
+                break
+            fi
+        done
+    done
 done
