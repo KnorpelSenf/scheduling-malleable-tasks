@@ -42,6 +42,9 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
             )
         })
         .collect::<Vec<_>>();
+
+    let n = jobs.len();
+
     let mut rdr = ReaderBuilder::new()
         .from_path(constraint_file)
         .expect("cound not read constraints CSV");
@@ -86,6 +89,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
                     .index,
             )
         })
+        .take_while(|Constraint(l, r)| n <= *l && n <= *r)
         .collect();
 
     let max_time = jobs.len() as i32

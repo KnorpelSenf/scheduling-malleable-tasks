@@ -1,6 +1,11 @@
 {
 	"name": "Rust",
-	"build": { "dockerfile": "Dockerfile" },
+	"build": {
+		"dockerfile": "Dockerfile",
+		"options": [
+			"--platform=linux/amd64"
+		]
+	},
 	"postCreateCommand": "mkdir -p ~/.local/share/bash-completion/completions && rustup completions bash > ~/.local/share/bash-completion/completions/rustup && rustup completions bash cargo > ~/.local/share/bash-completion/completions/cargo",
 	"customizations": {
 		"vscode": {
