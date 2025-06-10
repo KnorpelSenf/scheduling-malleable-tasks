@@ -1,8 +1,22 @@
 # Scheduling Malleable Tasks
 
-A pure Rust implementation of *Scheduling and Packing Malleable and Parallel Tasks With Precedence Constraints of Bounded Width* (2009) by Günther et al.
+A Rust implementation of three different algorithms for scheduling malleable tasks with precendence constraints.
 
-TODO: elaborate
+In this project, we abbreviate the three papers with DP, LP, and ILP.
+
+1. LP: [An Approximation Algorithm for Scheduling Malleable Tasks Under General Precedence Constraints](https://doi.org/10.1007/11602613_25) by Jansen et al.
+2. ILP: [Scheduling Malleable Tasks With Precedence Constraints](https://doi.org/10.1016/j.jcss.2011.04.003) by Jansen et al.
+3. DP: [Scheduling and Packing Malleable and Parallel Tasks With Precedence Constraints of Bounded Width](https://doi.org/10.1007/s10878-012-9498-3) by Günther et al.
+
+This repositoriy includes:
+
+- a problem instance generation script
+- solvers for all three above algorithms
+- a somewhat broken SVG renderer for solutions
+- several sample problems instances
+- an evaluation script to generate and solve many problems in a grid search
+- a postprocessing script for ease of visualisation
+- a devcontainer setup
 
 ## System Setup
 
