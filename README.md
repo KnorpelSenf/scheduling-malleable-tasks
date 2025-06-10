@@ -170,7 +170,7 @@ In order to stay as close as possible to the original piece of research, this fl
 ### Scheduling via ILP
 
 The integer linear program delivers the best makespan of the three algoritms.
-(Remember that the paper describes a ILP but the algorithm actually solves the relaxed LP variant of it, which is described in the same paper.
+(Remember that the paper describes an ILP but the algorithm actually solves the relaxed LP variant of it, which is described in the same paper.
 We do not actually need to solve a linear program with integer constraints.)
 
 You can run it using `cargo run -- solve-ilp` with the following options.
