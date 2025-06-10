@@ -8,7 +8,7 @@ In this project, we abbreviate the three papers with DP, LP, and ILP.
 2. ILP: [Scheduling Malleable Tasks With Precedence Constraints](https://doi.org/10.1016/j.jcss.2011.04.003) by Jansen et al.
 3. DP: [Scheduling and Packing Malleable and Parallel Tasks With Precedence Constraints of Bounded Width](https://doi.org/10.1007/s10878-012-9498-3) by Günther et al.
 
-This repositoriy includes:
+This repository includes:
 
 - a problem instance generation script
 - solvers for all three above algorithms
