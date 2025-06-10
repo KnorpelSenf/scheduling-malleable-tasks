@@ -1,3 +1,5 @@
+// This file contains the implementation of the older LP algorithm Paper by Jansen and Zhang.
+
 use log::debug;
 
 use cpm_rs::{CustomTask, Scheduler};
@@ -8,6 +10,7 @@ use good_lp::{
 use crate::algo::{Instance, Job, Schedule, ScheduledJob};
 
 #[expect(clippy::too_many_lines, clippy::needless_pass_by_value)]
+/// Computes a schedule for the given `instance` using a linear programming approach.
 pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     // initialization step
     let m = instance.processor_count;
@@ -215,11 +218,14 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     }
 }
 
+/// Virtual work function from the paper
 fn w_hat_j(m: usize, virtual_processing_times: &[Variable], job: &Job) -> Expression {
     (1..=m)
         .map(|i| w_bar_j_i(m, i, virtual_processing_times, job))
         .sum::<Expression>()
 }
+
+/// Helper function from the paper
 fn w_bar_j_i(m: usize, i: usize, virtual_processing_times: &[Variable], job: &Job) -> Expression {
     if i == m {
         0.into()
@@ -228,6 +234,8 @@ fn w_bar_j_i(m: usize, i: usize, virtual_processing_times: &[Variable], job: &Jo
             / job.processing_time(i)
     }
 }
+
+/// Work function from the paper
 fn w_j_l(allotment: usize, job: &Job) -> i32 {
     allotment as i32 * job.processing_time(allotment)
 }
@@ -236,13 +244,12 @@ fn w_j_l(allotment: usize, job: &Job) -> i32 {
     clippy::missing_const_for_fn,
     reason = "might implement complex logic from paper here"
 )]
+/// Computes the value of rounding parameter based on the number of processors.
 fn compute_rho(_m: usize) -> f64 {
     0.430_991
 }
-// fn compute_my(m: usize) -> f64 {
-//     0.270875 * m as f64
-// }
 
+/// Computes the critical path length CLP of the given `instance`.
 fn critical_path_length(instance: &Instance) -> i32 {
     let mut scheduler = Scheduler::<i32>::new();
     for job in &instance.jobs {

@@ -1,6 +1,9 @@
+// CSV file handling implementations.
+
 use crate::algo::{Constraint, Instance, Job};
 use csv::{ReaderBuilder, Writer};
 
+/// Reads a job and constraint CSV file and returns an `Instance`.
 pub fn read(job_file: &str, constraint_file: &str) -> Instance {
     let mut rdr = ReaderBuilder::new()
         .from_path(job_file)
@@ -107,6 +110,7 @@ pub fn read(job_file: &str, constraint_file: &str) -> Instance {
     }
 }
 
+/// Writes an `Instance` to job and constraint CSV files.
 pub fn write(job_file: &str, constraint_file: &str, instance: Instance) {
     let mut wtr = Writer::from_path(job_file).expect("could not write job CSV");
     let headers = std::iter::once("id".to_string())

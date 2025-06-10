@@ -1,3 +1,6 @@
+// Small helper to render schedules to csv files, but it is not adjusted to account for allotments.
+// It is copied over from a previous project for potential future work and needs fixing.
+
 use crate::{Schedule, ScheduledJob};
 use svg::{
     node::element::{

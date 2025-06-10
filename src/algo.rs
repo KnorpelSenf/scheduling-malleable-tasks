@@ -1,3 +1,5 @@
+// In this file we define the data structures used in the algorithm
+
 /// A problem instance
 #[derive(Debug)]
 pub struct Instance {
@@ -11,6 +13,7 @@ pub struct Instance {
     pub max_time: i32,
 }
 impl Instance {
+    /// Computes a list of jobs that are predecessors of the given job
     pub fn predecessors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
         self.jobs
             .iter()
@@ -18,6 +21,7 @@ impl Instance {
             .filter(|(_, j)| job.index != j.index && j.less_than(&self.constraints, job))
             .collect()
     }
+    /// Computes a list of jobs that are successors of the given job
     pub fn successors<'a>(&'a self, job: &Job) -> Vec<(usize, &'a Job)> {
         self.jobs
             .iter()
@@ -26,10 +30,11 @@ impl Instance {
             .collect()
     }
 }
+
 /// A job in a problem instance
 #[derive(Clone, Debug)]
 pub struct Job {
-    /// Index of the job
+    /// Index of the job, 1-indexed
     pub index: usize,
     /// Processing times of the job based on how many machines is has available.
     /// Element 0 is skipped, so the vector starts with the processing time
@@ -37,10 +42,12 @@ pub struct Job {
     pub processing_times: Vec<i32>,
 }
 impl Job {
-    /// Computes the processing time of the job based on the given allotment
+    /// Looks up the processing time of the job based on the given allotment
     pub fn processing_time(&self, allotment: usize) -> i32 {
         self.processing_times[allotment - 1]
     }
+    /// Searches for the minimum feasible allotment for this job, given a target
+    /// processing time, can be rounded up or down. 
     pub fn closest_allotment(&self, processing_time: i32) -> usize {
         1 + self
             .processing_times
@@ -58,12 +65,16 @@ impl PartialEq for Job {
         self.index == other.index
     }
 }
-// impl Eq for Job {}
-/// Compares two values by their index
+
+/// Models the scheduling order of two jobs by their index
 #[derive(Debug)]
 pub struct Constraint(pub usize, pub usize);
 /// Implements a partial relation based on a list of constraints
 pub trait PartialRelation {
+    /// Returns `None` if self and other are incomparable. Returns `Some(true)`
+    /// if self is less than other and returns `Some(false)` if other is less
+    /// than self.
+    fn compare(&self, relation: &[Constraint], other: &Self) -> Option<bool>;
     /// Returns `true` if self is comparable to other, and `false` of the two
     /// values are incomparable
     fn is_comparable(&self, relation: &[Constraint], other: &Self) -> bool {
@@ -77,10 +88,6 @@ pub trait PartialRelation {
     fn greater_than(&self, relation: &[Constraint], other: &Self) -> bool {
         self.compare(relation, other).is_some_and(|less| !less)
     }
-    /// Returns `None` if self and other are incomparable. Returns `Some(true)`
-    /// if self is less than other and returns `Some(false)` if other is less
-    /// than self.
-    fn compare(&self, relation: &[Constraint], other: &Self) -> Option<bool>;
 }
 impl PartialRelation for Job {
     fn compare(&self, relation: &[Constraint], other: &Self) -> Option<bool> {
@@ -104,6 +111,7 @@ pub struct Schedule {
     /// A list of scheduled jobs
     pub jobs: Vec<ScheduledJob>,
 }
+
 /// A job that was scheduled in a feasible schedule
 #[derive(Debug)]
 pub struct ScheduledJob {

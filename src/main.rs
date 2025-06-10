@@ -1,3 +1,5 @@
+// This is the main file of the project which gets executed when running the CLI.
+
 use env_logger::{Builder, Target::Stdout};
 use log::{error, info};
 

@@ -1,3 +1,5 @@
+// This file contains the "ILP" implementation from the newer Jansen, Zhang Paper, but it transformed to a relaxed LP implementation.
+
 use log::debug;
 
 use cpm_rs::{CustomTask, Scheduler};
@@ -6,6 +8,7 @@ use good_lp::{constraint, default_solver, variable, variables, Expression, Solut
 use crate::algo::{Instance, Schedule, ScheduledJob};
 
 #[expect(clippy::too_many_lines, clippy::needless_pass_by_value)]
+/// Computes a schedule for the given `instance` using a linear programming approach.
 pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     // initialization step
     let m = instance.jobs.len() as i32;
@@ -56,7 +59,7 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
                     ))
                 })
         });
-    // (9)
+    // LP (9) from the paper
     #[expect(
         clippy::range_minus_one,
         reason = "drop last element of a 1-indexed vector, stay close to notation in paper"
@@ -183,10 +186,13 @@ pub fn schedule(instance: Instance, compress: bool) -> Schedule {
     }
 }
 
+/// Computes the allotment parameter µ based on the number of jobs `m`.
 fn compute_my(m: i32) -> f64 {
     let m = f64::from(m);
     0.01 * (113.0 * m - ((6469.0 * m * m) - 6300.0 * m).sqrt())
 }
+
+/// Computes the critical path length CPL for the given `instance`.
 fn critical_path_length(instance: &Instance) -> i32 {
     let mut scheduler = Scheduler::<i32>::new();
     for job in &instance.jobs {

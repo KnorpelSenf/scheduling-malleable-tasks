@@ -1,3 +1,6 @@
+// This file contains the implementation of the dynamic programming algorithm.
+
+
 use log::debug;
 
 use std::{cmp::Ordering, collections::HashSet, hash::Hash};
@@ -9,12 +12,15 @@ use crate::algo::{Instance, PartialRelation, Schedule, ScheduledJob};
 struct State {
     /// For each chain, how far have we advanced this chain
     ideal: Vec<usize>,
-    /// For each chain, how many machines do we use for the front task, i.e. the job indicated by `ideal`
+    /// For each chain, how many machines do we use for the front task,
+    /// i.e. the job indicated by `ideal`
     allotment: Vec<usize>,
-    /// For each chain, how many machines do we use for the front task, i.e. the job indicated by `ideal`
+    /// For each chain, how many machines do we use for the front task,
+    /// i.e. the job indicated by `ideal`
     completion_times: Vec<i32>,
 }
 impl State {
+    /// Create an empty state with `omega` number of chains
     fn empty(omega: usize) -> Self {
         Self {
             ideal: vec![0; omega],
@@ -22,12 +28,9 @@ impl State {
             completion_times: vec![0; omega],
         }
     }
-    // fn start_times(&self, i: usize) -> i32 {
-    //     self.ideal[i]
-    //         .as_ref()
-    //         .map(|ideal| self.completion_times[i] - ideal.processing_time(self.allotment[i]))
-    //         .unwrap_or(0)
-    // }
+    /// Choose a `chain` which progresses by one job in the scheduling, using
+    /// `allot` machines and completing at time `compl`. Returns a new state.
+    /// This relates to condition 1. in the paper.
     fn add_job(&self, chain: usize, allot: usize, compl: i32) -> Self {
         let mut ideal = self.ideal.clone();
         let mut allotment = self.allotment.clone();
@@ -49,12 +52,13 @@ impl Hash for State {
 }
 
 #[expect(clippy::needless_pass_by_value)]
+/// Given a problem `instance`, find a schedule that satisfies the constraints.
+/// The main function of the DP-Algorithm.
 pub fn schedule(instance: Instance) -> Schedule {
     let chains = preprocess(&instance);
     let omega = chains.len();
     let initial_state = State::empty(omega);
-    let jobs =
-        search(&instance, &chains, &initial_state, &mut HashSet::new()).expect("no solution found");
+    let jobs = search(&instance, &chains, &initial_state, &mut HashSet::new()).expect("no solution found");
     debug!("jobs are {jobs:#?}");
     Schedule {
         processor_count: instance.processor_count,
@@ -62,16 +66,19 @@ pub fn schedule(instance: Instance) -> Schedule {
     }
 }
 
+/// Recursive function that searches for the next jobs to be scheduled
 fn search(
     instance: &Instance,
     chains: &Vec<Vec<usize>>,
     state: &State,
     known: &mut HashSet<State>,
 ) -> Option<Vec<ScheduledJob>> {
+    // Terminate when all jobs are scheduled.
     if state.ideal.iter().sum::<usize>() == instance.jobs.len() {
         return Some(vec![]);
     }
 
+    // Search for the new job to be scheduled for every chain.
     for (chain_index, chain) in chains.iter().enumerate() {
         let ideal = state.ideal[chain_index];
         if ideal == chain.len() {
@@ -79,6 +86,7 @@ fn search(
         }
         let new_job_index = chain[ideal];
         let new_job = &instance.jobs[new_job_index];
+        // Check all possible allotments for the new job and determine if it can be scheduled.
         for (&processing_time, allotment) in new_job.processing_times.iter().zip(1..) {
             for compl in 0..instance.max_time {
                 let new_start_time = compl - processing_time;
@@ -146,6 +154,8 @@ fn search(
                     continue;
                 }
 
+                // It is feasable to schedule this job in this chain. So we progress to the next state
+                // and search for the next job to schedule.
                 let new_state = state.add_job(chain_index, allotment, compl);
                 let is_new = known.insert(new_state.clone());
                 if !is_new {
@@ -171,10 +181,13 @@ fn search(
     None
 }
 
+/// Given a problem `instance`, which contains only a list of constraints,
+/// compute a list of chains of jobs that are comparable to each other.
 fn preprocess(instance: &Instance) -> Vec<Vec<usize>> {
     let mut chains: Vec<Vec<usize>> = vec![];
     for (job_index, job) in instance.jobs.iter().enumerate() {
         if let Some(chain) = chains.iter_mut().find(|chain| {
+            // Check if the job is comparable to all jobs in the chain
             chain
                 .iter()
                 .all(|&i| instance.jobs[i].is_comparable(&instance.constraints, job))
